@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Ledger</title>
+    <title>Ledger Cloud</title>
     <style>
         :root {
             --bg: #F5F4F0; --surface: #FFFFFF; --ink: #111111; --ink-light: #666666;
@@ -12,13 +12,12 @@
 
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", Helvetica, Arial, sans-serif; }
 
-        /* Responsive Wrapper & Safe Area Handling */
         body {
             background-color: var(--bg);
             color: var(--ink);
             -webkit-font-smoothing: antialiased;
-            max-width: 600px; /* Constrains width on desktop/tablet */
-            margin: 0 auto; /* Centers the app */
+            max-width: 600px;
+            margin: 0 auto;
             padding: max(20px, env(safe-area-inset-top)) 20px max(100px, env(safe-area-inset-bottom));
         }
 
@@ -27,8 +26,8 @@
         h3 { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; color: var(--ink-light); margin-bottom: 12px; margin-top: 24px;}
         
         .header-top { display: flex; justify-content: space-between; align-items: baseline; }
-        .nav-links { display: flex; gap: 16px; }
-        .nav-link { color: var(--ink-light); text-decoration: none; font-size: 14px; font-weight: 500; border-bottom: 1px solid var(--ink-light); padding-bottom: 2px;}
+        .nav-links { display: flex; gap: 16px; align-items: center;}
+        .nav-link { color: var(--ink-light); text-decoration: none; font-size: 14px; font-weight: 500; border-bottom: 1px solid var(--ink-light); padding-bottom: 2px; cursor: pointer;}
 
         /* Visual Dashboard */
         .dashboard { display: flex; flex-direction: column; align-items: center; margin-bottom: 40px; width: 100%;}
@@ -90,76 +89,353 @@
         .modal-content { max-width: 600px; margin: 0 auto; }
         .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 32px; }
         .close-btn { background: none; border: none; font-size: 32px; font-weight: 300; cursor: pointer; color: var(--ink); }
+        
+        #loadingOverlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--bg); z-index: 200; align-items: center; justify-content: center; font-weight: 600;}
     </style>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+        import { getFirestore, collection, addDoc, query, onSnapshot, deleteDoc, doc, setDoc, orderBy } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyCyYAuJLi67EdCu4FvIEr4QsKCgvlKWXrw",
+            authDomain: "ledger-d3ec5.firebaseapp.com",
+            projectId: "ledger-d3ec5",
+            storageBucket: "ledger-d3ec5.firebasestorage.app",
+            messagingSenderId: "1024737940441",
+            appId: "1:1024737940441:web:670e3c2a660e989f5fffc8"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        const provider = new GoogleAuthProvider();
+
+        const palette = ['#111111', '#A63D2F', '#D99A5A', '#C2847A', '#7A8B76', '#4A5D4E', '#2B4C3B', '#8E8E93'];
+        let currentUser = null;
+        let unsubscribeTxs = null;
+        let unsubscribeSettings = null;
+
+        let transactions = [];
+        let categories = [];
+        let wallets = [];
+        let type = 'expense';
+        let modalTab = 'expense';
+        let editingItemId = null;
+
+        // Auth Listener: The Gatekeeper
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                currentUser = user;
+                document.getElementById('loginScreen').style.display = 'none';
+                document.getElementById('appScreen').style.display = 'block';
+                document.getElementById('loadingOverlay').style.display = 'flex';
+                initCloudSync(user.uid);
+            } else {
+                currentUser = null;
+                document.getElementById('loginScreen').style.display = 'block';
+                document.getElementById('appScreen').style.display = 'none';
+                if(unsubscribeTxs) unsubscribeTxs();
+                if(unsubscribeSettings) unsubscribeSettings();
+            }
+        });
+
+        window.login = () => signInWithPopup(auth, provider);
+        window.logout = () => signOut(auth);
+
+        // Core Cloud Sync
+        async function initCloudSync(uid) {
+            // 1. Sync Settings (Envelopes & Wallets)
+            const settingsRef = doc(db, `users/${uid}/settings/data`);
+            unsubscribeSettings = onSnapshot(settingsRef, (docSnap) => {
+                if (docSnap.exists()) {
+                    const data = docSnap.data();
+                    categories = data.categories || [];
+                    wallets = data.wallets || [];
+                } else {
+                    // First time login - Create default setup
+                    categories = [
+                        { id: 'i_salary', name: 'Primary Salary', type: 'income', color: '#2B4C3B' },
+                        { id: 'i_other', name: 'Other Income', type: 'income', color: '#4A5D4E' },
+                        { id: 'e_mortgage', name: 'Mortgage & Utilities', type: 'expense', budget: 2500, color: '#111111' },
+                        { id: 'e_auto', name: 'EV Charging & Auto', type: 'expense', budget: 150, color: '#A63D2F' },
+                        { id: 'e_pet', name: 'Pet Care', type: 'expense', budget: 150, color: '#D99A5A' },
+                        { id: 'e_food', name: 'Dining Out', type: 'expense', budget: 350, color: '#C2847A' },
+                        { id: 'e_tech', name: 'Home Lab & Tech', type: 'expense', budget: 150, color: '#7A8B76' },
+                        { id: 'e_proj', name: 'Home Improvement', type: 'expense', budget: 500, color: '#4A5D4E' },
+                    ];
+                    wallets = [
+                        { id: 'w_chk', name: 'Checking Account' },
+                        { id: 'w_chs', name: 'Chase Card' },
+                        { id: 'w_dsc', name: 'Discover Card' }
+                    ];
+                    saveSettingsToCloud();
+                }
+                refreshDropdowns();
+                renderUI();
+                renderModalList();
+            });
+
+            // 2. Sync Transactions
+            const txsRef = collection(db, `users/${uid}/transactions`);
+            const q = query(txsRef, orderBy("timestamp", "desc"));
+            unsubscribeTxs = onSnapshot(q, (snapshot) => {
+                transactions = [];
+                snapshot.forEach((doc) => {
+                    transactions.push({ id: doc.id, ...doc.data() });
+                });
+                renderUI();
+                document.getElementById('loadingOverlay').style.display = 'none'; // Hide loading screen
+            });
+        }
+
+        function saveSettingsToCloud() {
+            if(!currentUser) return;
+            const settingsRef = doc(db, `users/${currentUser.uid}/settings/data`);
+            setDoc(settingsRef, { categories, wallets }, { merge: true });
+        }
+
+        // --- EXPOSE FUNCTIONS TO UI ---
+        window.setType = (t) => {
+            type = t;
+            document.getElementById('btnExpense').classList.toggle('active', t === 'expense');
+            document.getElementById('btnIncome').classList.toggle('active', t === 'income');
+            document.getElementById('catLabel').textContent = t === 'income' ? 'Source' : 'Envelope';
+            document.getElementById('quickTags').style.display = t === 'income' ? 'none' : 'flex';
+            document.getElementById('walletRow').style.display = t === 'income' ? 'none' : 'flex';
+            refreshDropdowns();
+        };
+
+        window.quickFill = (catId) => {
+            window.setType('expense');
+            document.getElementById('catInput').value = catId;
+            document.getElementById('amtInput').focus();
+        };
+
+        window.saveTx = async () => {
+            const amt = parseFloat(document.getElementById('amtInput').value);
+            const note = document.getElementById('noteInput').value.trim();
+            const catId = document.getElementById('catInput').value;
+            const walletId = type === 'income' ? 'Deposit' : document.getElementById('walletInput').value;
+
+            if (!amt || !note) return alert('Amount and note required.');
+            if (!currentUser) return alert('Session expired. Please login again.');
+
+            const txsRef = collection(db, `users/${currentUser.uid}/transactions`);
+            await addDoc(txsRef, {
+                type, amt, note, catId, walletId,
+                date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+                timestamp: Date.now()
+            });
+
+            document.getElementById('amtInput').value = '';
+            document.getElementById('noteInput').value = '';
+            document.activeElement.blur();
+        };
+
+        window.delTx = async (id) => {
+            if (!currentUser) return;
+            await deleteDoc(doc(db, `users/${currentUser.uid}/transactions/${id}`));
+        };
+
+        window.openCatModal = () => { document.getElementById('categoryModal').style.display = 'block'; window.setModalTab('expense'); };
+        window.closeCatModal = () => { document.getElementById('categoryModal').style.display = 'none'; window.cancelEdit(); };
+        
+        window.setModalTab = (t) => { 
+            modalTab = t; 
+            document.getElementById('modalBtnExpense').classList.toggle('active', t === 'expense'); 
+            document.getElementById('modalBtnIncome').classList.toggle('active', t === 'income'); 
+            document.getElementById('modalBtnWallet').classList.toggle('active', t === 'wallet'); 
+            document.getElementById('modalBudgetRow').style.display = t === 'expense' ? 'flex' : 'none'; 
+            document.getElementById('modalNameLabel').textContent = t === 'wallet' ? 'Wallet Name' : 'Name';
+            document.getElementById('newCatName').placeholder = t === 'wallet' ? 'e.g., Citi Card' : 'e.g., Target Runs';
+            const titles = { 'expense': 'Current Expenses', 'income': 'Income Sources', 'wallet': 'Your Wallets' };
+            document.getElementById('modalListTitle').textContent = titles[t];
+            renderModalList();
+        };
+
+        window.editItem = (id) => { 
+            let item = modalTab === 'wallet' ? wallets.find(w => w.id === id) : categories.find(c => c.id === id);
+            if (!item) return; 
+            editingItemId = id; 
+            document.getElementById('newCatName').value = item.name; 
+            if (modalTab === 'expense') document.getElementById('newCatBudget').value = item.budget; 
+            document.getElementById('saveCatBtn').textContent = 'Update'; 
+            document.getElementById('cancelEditBtn').style.display = 'inline-flex'; 
+            document.getElementById('categoryModal').scrollTo({ top: 0, behavior: 'smooth' }); 
+        };
+
+        window.cancelEdit = () => { 
+            editingItemId = null; 
+            document.getElementById('newCatName').value = ''; 
+            document.getElementById('newCatBudget').value = ''; 
+            document.getElementById('saveCatBtn').textContent = 'Save Item'; 
+            document.getElementById('cancelEditBtn').style.display = 'none'; 
+        };
+
+        window.saveSetupItem = () => { 
+            const name = document.getElementById('newCatName').value.trim(); 
+            const budget = parseFloat(document.getElementById('newCatBudget').value); 
+            if (!name || (modalTab === 'expense' && isNaN(budget))) return alert('Missing fields.'); 
+
+            if (editingItemId) { 
+                if (modalTab === 'wallet') {
+                    const w = wallets.find(w => w.id === editingItemId);
+                    if (w) w.name = name;
+                } else {
+                    const c = categories.find(c => c.id === editingItemId);
+                    if (c) { c.name = name; c.budget = modalTab === 'expense' ? budget : 0; }
+                }
+            } else { 
+                if (modalTab === 'wallet') {
+                    wallets.push({ id: 'w_' + Date.now(), name });
+                } else {
+                    categories.push({ id: (modalTab === 'expense' ? 'e_' : 'i_') + Date.now(), name, type: modalTab, budget: modalTab === 'expense' ? budget : 0, color: palette[categories.length % palette.length] }); 
+                }
+            } 
+            saveSettingsToCloud(); 
+            window.cancelEdit(); 
+        };
+
+        window.deleteItem = (id) => { 
+            if(confirm("Delete this?")) { 
+                if (modalTab === 'wallet') wallets = wallets.filter(w => w.id !== id);
+                else categories = categories.filter(c => c.id !== id);
+                if (editingItemId === id) window.cancelEdit(); 
+                saveSettingsToCloud(); 
+            } 
+        };
+
+        function refreshDropdowns() { 
+            const catSel = document.getElementById('catInput'); 
+            catSel.innerHTML = ''; 
+            categories.filter(c => c.type === type).forEach(c => { catSel.innerHTML += `<option value="${c.id}">${c.name}</option>`; }); 
+            const walSel = document.getElementById('walletInput');
+            walSel.innerHTML = '';
+            wallets.forEach(w => { walSel.innerHTML += `<option value="${w.id}">${w.name}</option>`; });
+        }
+        
+        function renderModalList() {
+            const list = document.getElementById('modalSetupList');
+            let html = '';
+            if (modalTab === 'wallet') {
+                html = wallets.map(w => `<div class="list-row"><div><div class="env-name">${w.name}</div></div><div class="action-btns"><button class="edit-btn" onclick="editItem('${w.id}')">✎</button><button class="del-btn" onclick="deleteItem('${w.id}')">&times;</button></div></div>`).join('');
+            } else {
+                html = categories.filter(c => c.type === modalTab).map(c => `<div class="list-row"><div><div class="env-name"><span class="color-dot" style="background:${c.color}"></span> ${c.name}</div>${modalTab === 'expense' ? `<div class="tx-meta">Limit: $${c.budget}</div>` : ''}</div><div class="action-btns"><button class="edit-btn" onclick="editItem('${c.id}')">✎</button><button class="del-btn" onclick="deleteItem('${c.id}')">&times;</button></div></div>`).join('');
+            }
+            list.innerHTML = html || '<div style="padding: 16px 0; color: var(--ink-light); font-size: 14px;">No items found.</div>';
+        }
+
+        function renderUI() {
+            const totalInc = transactions.filter(t => t.type === 'income').reduce((s, t) => s + t.amt, 0);
+            const totalExp = transactions.filter(t => t.type === 'expense').reduce((s, t) => s + t.amt, 0);
+            document.getElementById('lblBalance').textContent = `$${(totalInc - totalExp).toFixed(0)}`;
+            document.getElementById('lblTotalIn').textContent = `$${totalInc.toFixed(0)}`;
+            document.getElementById('lblTotalOut').textContent = `$${totalExp.toFixed(0)}`;
+
+            const corrPct = totalInc > 0 ? Math.min((totalExp / totalInc) * 100, 100) : 0;
+            document.getElementById('lblCorrPct').textContent = `${corrPct.toFixed(1)}%`;
+            document.getElementById('corrBar').style.width = `${corrPct}%`;
+
+            let gradientStr = ''; let currentPct = 0;
+            const expCats = categories.filter(c => c.type === 'expense');
+            expCats.forEach(cat => { const spent = transactions.filter(t => t.catId === cat.id && t.type === 'expense').reduce((s, t) => s + t.amt, 0); if (spent > 0 && totalExp > 0) { const slicePct = (spent / totalExp) * 100; gradientStr += `${cat.color} ${currentPct}% ${currentPct + slicePct}%, `; currentPct += slicePct; } });
+            document.getElementById('expensePie').style.background = (totalExp === 0 || gradientStr === '') ? 'conic-gradient(#E2E0D8 0%)' : `conic-gradient(${gradientStr.slice(0, -2)})`;
+
+            document.getElementById('quickTags').innerHTML = expCats.slice(0, 6).map(c => `<button class="tag" onclick="quickFill('${c.id}')">${c.name}</button>`).join('');
+
+            document.getElementById('envList').innerHTML = expCats.map(cat => { const spent = transactions.filter(t => t.catId === cat.id && t.type === 'expense').reduce((s, t) => s + t.amt, 0); const pct = cat.budget > 0 ? Math.min((spent / cat.budget) * 100, 100) : 0; return `<div class="list-row"><div style="flex:1; padding-right: 20px;"><div class="env-name"><span class="color-dot" style="background:${cat.color}"></span> ${cat.name}</div><div class="env-track"><div class="env-fill" style="width: ${pct}%; background:${cat.color}"></div></div></div><div class="env-stats">$${spent.toFixed(0)} / $${cat.budget}</div></div>`; }).join('');
+
+            document.getElementById('txList').innerHTML = transactions.length ? transactions.map(t => { 
+                const cat = categories.find(c => c.id === t.catId); 
+                const wal = wallets.find(w => w.id === t.walletId);
+                const isInc = t.type === 'income'; 
+                return `<div class="list-row"><div><div class="tx-desc">${t.note}</div><div class="tx-meta">${t.date} • ${cat ? cat.name : 'Uncategorized'} ${!isInc && wal ? `<span style="background: #EAE8E1; padding: 2px 6px; border-radius: 4px; margin-left: 4px; font-weight: 600;">${wal.name}</span>` : ''}</div></div><div style="display: flex; align-items: center;"><div class="tx-amt ${isInc ? 'income' : ''}">${isInc ? '+' : '-'}$${t.amt.toFixed(2)}</div><button class="del-btn" onclick="delTx('${t.id}')">&times;</button></div></div>`; 
+            }).join('') : '<div style="padding: 20px 0; color: var(--ink-light);">No activity yet.</div>';
+        }
+    </script>
 </head>
 <body>
 
-    <div class="header-top">
-        <h1>Ledger</h1>
-        <div class="nav-links">
-            <a href="goals.html" class="nav-link">Goals</a>
-            <a href="advisor.html" class="nav-link">Advisor</a>
-        </div>
+    <div id="loginScreen" style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; text-align: center;">
+        <h1 style="font-size: 48px; margin-bottom: 8px;">Ledger</h1>
+        <p style="color: var(--ink-light); margin-bottom: 40px; font-weight: 500;">Secure Cloud Sync</p>
+        <button class="btn-primary" style="width: auto; padding: 16px 32px;" onclick="login()">Sign in with Google</button>
     </div>
 
-    <div class="dashboard">
-        <div class="donut-wrapper">
-            <div class="donut-chart" id="expensePie"></div>
-            <div class="donut-hole">
-                <span>Available</span>
-                <strong id="lblBalance">$0</strong>
-                <div class="net-label" id="lblNetStatus">On Track</div>
+    <div id="loadingOverlay">Syncing with Cloud...</div>
+
+    <div id="appScreen" style="display: none;">
+        <div class="header-top">
+            <h1>Ledger</h1>
+            <div class="nav-links">
+                <a href="goals.html" class="nav-link">Goals</a>
+                <a href="advisor.html" class="nav-link">Advisor</a>
+                <a onclick="logout()" class="nav-link" style="color: var(--danger);">Log Out</a>
             </div>
         </div>
 
-        <div class="correlation-box">
-            <div class="corr-header">
-                <span style="color: var(--ink-light);">Income Spent</span>
-                <span id="lblCorrPct">0%</span>
+        <div class="dashboard">
+            <div class="donut-wrapper">
+                <div class="donut-chart" id="expensePie"></div>
+                <div class="donut-hole">
+                    <span>Available</span>
+                    <strong id="lblBalance">$0</strong>
+                    <div class="net-label" id="lblNetStatus">On Track</div>
+                </div>
             </div>
-            <div class="corr-track"><div class="corr-fill" id="corrBar"></div></div>
-            <div style="display: flex; justify-content: space-between; margin-top: 8px; font-size: 12px; color: var(--ink-light);">
-                <span>In: <strong style="color: var(--ink);" id="lblTotalIn">$0</strong></span>
-                <span>Out: <strong style="color: var(--ink);" id="lblTotalOut">$0</strong></span>
+
+            <div class="correlation-box">
+                <div class="corr-header">
+                    <span style="color: var(--ink-light);">Income Spent</span>
+                    <span id="lblCorrPct">0%</span>
+                </div>
+                <div class="corr-track"><div class="corr-fill" id="corrBar"></div></div>
+                <div style="display: flex; justify-content: space-between; margin-top: 8px; font-size: 12px; color: var(--ink-light);">
+                    <span>In: <strong style="color: var(--ink);" id="lblTotalIn">$0</strong></span>
+                    <span>Out: <strong style="color: var(--ink);" id="lblTotalOut">$0</strong></span>
+                </div>
             </div>
         </div>
+
+        <div class="form-area">
+            <div class="type-toggle">
+                <div class="toggle-btn active" id="btnExpense" onclick="setType('expense')">Expense</div>
+                <div class="toggle-btn" id="btnIncome" onclick="setType('income')">Income</div>
+            </div>
+
+            <div class="tags-container" id="quickTags"></div>
+
+            <div class="input-line">
+                <label>Amount</label>
+                <input type="number" id="amtInput" placeholder="0.00" step="0.01" inputmode="decimal">
+            </div>
+            <div class="input-line">
+                <label>Note</label>
+                <input type="text" id="noteInput" placeholder="What was it for?">
+            </div>
+            <div class="input-line">
+                <label id="catLabel">Envelope</label>
+                <select id="catInput" dir="rtl"></select>
+            </div>
+            <div class="input-line" id="walletRow">
+                <label>Wallet</label>
+                <select id="walletInput" dir="rtl"></select>
+            </div>
+            
+            <button class="btn-primary" onclick="saveTx()">Log Transaction</button>
+        </div>
+
+        <div style="display: flex; justify-content: space-between; align-items: baseline;">
+            <h2>Breakdown</h2>
+            <button class="btn-outline" onclick="openCatModal()">Edit Setup</button>
+        </div>
+        <div class="list-wrap" id="envList"></div>
+
+        <h2>Activity</h2>
+        <div class="list-wrap" id="txList" style="margin-top: 16px;"></div>
     </div>
-
-    <div class="form-area">
-        <div class="type-toggle">
-            <div class="toggle-btn active" id="btnExpense" onclick="setType('expense')">Expense</div>
-            <div class="toggle-btn" id="btnIncome" onclick="setType('income')">Income</div>
-        </div>
-
-        <div class="tags-container" id="quickTags"></div>
-
-        <div class="input-line">
-            <label>Amount</label>
-            <input type="number" id="amtInput" placeholder="0.00" step="0.01" inputmode="decimal">
-        </div>
-        <div class="input-line">
-            <label>Note</label>
-            <input type="text" id="noteInput" placeholder="What was it for?">
-        </div>
-        <div class="input-line">
-            <label id="catLabel">Envelope</label>
-            <select id="catInput" dir="rtl"></select> </div>
-        <div class="input-line" id="walletRow">
-            <label>Wallet</label>
-            <select id="walletInput" dir="rtl"></select>
-        </div>
-        
-        <button class="btn-primary" onclick="saveTx()">Log Transaction</button>
-    </div>
-
-    <div style="display: flex; justify-content: space-between; align-items: baseline;">
-        <h2>Breakdown</h2>
-        <button class="btn-outline" onclick="openCatModal()">Edit Setup</button>
-    </div>
-    <div class="list-wrap" id="envList"></div>
-
-    <h2>Activity</h2>
-    <div class="list-wrap" id="txList" style="margin-top: 16px;"></div>
 
     <div id="categoryModal">
         <div class="modal-content">
@@ -195,212 +471,5 @@
         </div>
     </div>
 
-    <script>
-        const palette = ['#111111', '#A63D2F', '#D99A5A', '#C2847A', '#7A8B76', '#4A5D4E', '#2B4C3B', '#8E8E93'];
-        
-        let transactions = JSON.parse(localStorage.getItem('bdgt_txs')) || [];
-        let categories = JSON.parse(localStorage.getItem('bdgt_cats')) || [];
-        let wallets = JSON.parse(localStorage.getItem('bdgt_wallets')) || [];
-        
-        // Defaults if empty
-        if (categories.length === 0) {
-            categories = [
-                { id: 'i_salary', name: 'Primary Salary', type: 'income', color: '#2B4C3B' },
-                { id: 'e_mortgage', name: 'Mortgage & Utilities', type: 'expense', budget: 2500, color: '#111111' },
-                { id: 'e_auto', name: 'EV Charging & Auto', type: 'expense', budget: 150, color: '#A63D2F' },
-                { id: 'e_food', name: 'Dining Out', type: 'expense', budget: 350, color: '#C2847A' }
-            ];
-        }
-        if (wallets.length === 0) {
-            wallets = [
-                { id: 'w_chk', name: 'Checking Account' },
-                { id: 'w_chs', name: 'Chase Card' },
-                { id: 'w_dsc', name: 'Discover Card' }
-            ];
-        }
-
-        let type = 'expense';
-        let modalTab = 'expense'; // expense, income, or wallet
-        let editingItemId = null;
-
-        function init() { 
-            refreshDropdowns(); 
-            renderUI(); 
-        }
-
-        function setType(t) {
-            type = t;
-            document.getElementById('btnExpense').classList.toggle('active', t === 'expense');
-            document.getElementById('btnIncome').classList.toggle('active', t === 'income');
-            document.getElementById('catLabel').textContent = t === 'income' ? 'Source' : 'Envelope';
-            document.getElementById('quickTags').style.display = t === 'income' ? 'none' : 'flex';
-            document.getElementById('walletRow').style.display = t === 'income' ? 'none' : 'flex';
-            refreshDropdowns();
-        }
-
-        function quickFill(catId) {
-            setType('expense');
-            document.getElementById('catInput').value = catId;
-            document.getElementById('amtInput').focus();
-        }
-
-        function saveTx() {
-            const amt = parseFloat(document.getElementById('amtInput').value);
-            const note = document.getElementById('noteInput').value.trim();
-            const catId = document.getElementById('catInput').value;
-            const walletId = type === 'income' ? 'Deposit' : document.getElementById('walletInput').value;
-
-            if (!amt || !note) return alert('Amount and note required.');
-
-            transactions.unshift({
-                id: Date.now().toString(), type, amt, note, catId, walletId,
-                date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
-            });
-
-            sync(); renderUI();
-            document.getElementById('amtInput').value = '';
-            document.getElementById('noteInput').value = '';
-            document.activeElement.blur();
-        }
-
-        function delTx(id) { transactions = transactions.filter(t => t.id !== id); sync(); renderUI(); }
-
-        // --- SETUP MODAL MANAGER ---
-        function openCatModal() { document.getElementById('categoryModal').style.display = 'block'; setModalTab('expense'); }
-        function closeCatModal() { document.getElementById('categoryModal').style.display = 'none'; cancelEdit(); }
-        
-        function setModalTab(t) { 
-            modalTab = t; 
-            document.getElementById('modalBtnExpense').classList.toggle('active', t === 'expense'); 
-            document.getElementById('modalBtnIncome').classList.toggle('active', t === 'income'); 
-            document.getElementById('modalBtnWallet').classList.toggle('active', t === 'wallet'); 
-            
-            document.getElementById('modalBudgetRow').style.display = t === 'expense' ? 'flex' : 'none'; 
-            document.getElementById('modalNameLabel').textContent = t === 'wallet' ? 'Wallet Name' : 'Name';
-            document.getElementById('newCatName').placeholder = t === 'wallet' ? 'e.g., Citi Card' : 'e.g., Target Runs';
-            
-            const titles = { 'expense': 'Current Expenses', 'income': 'Income Sources', 'wallet': 'Your Wallets' };
-            document.getElementById('modalListTitle').textContent = titles[t];
-            
-            renderModalList();
-        }
-
-        function editItem(id) { 
-            let item;
-            if (modalTab === 'wallet') item = wallets.find(w => w.id === id);
-            else item = categories.find(c => c.id === id);
-            
-            if (!item) return; 
-
-            editingItemId = id; 
-            document.getElementById('newCatName').value = item.name; 
-            
-            if (modalTab === 'expense') document.getElementById('newCatBudget').value = item.budget; 
-            
-            document.getElementById('saveCatBtn').textContent = 'Update'; 
-            document.getElementById('cancelEditBtn').style.display = 'inline-flex'; 
-            document.getElementById('categoryModal').scrollTo({ top: 0, behavior: 'smooth' }); 
-        }
-
-        function cancelEdit() { 
-            editingItemId = null; 
-            document.getElementById('newCatName').value = ''; 
-            document.getElementById('newCatBudget').value = ''; 
-            document.getElementById('saveCatBtn').textContent = 'Save Item'; 
-            document.getElementById('cancelEditBtn').style.display = 'none'; 
-        }
-
-        function saveSetupItem() { 
-            const name = document.getElementById('newCatName').value.trim(); 
-            const budget = parseFloat(document.getElementById('newCatBudget').value); 
-            
-            if (!name || (modalTab === 'expense' && isNaN(budget))) return alert('Missing fields.'); 
-
-            if (editingItemId) { 
-                if (modalTab === 'wallet') {
-                    const w = wallets.find(w => w.id === editingItemId);
-                    if (w) w.name = name;
-                } else {
-                    const c = categories.find(c => c.id === editingItemId);
-                    if (c) { c.name = name; c.budget = modalTab === 'expense' ? budget : 0; }
-                }
-            } else { 
-                if (modalTab === 'wallet') {
-                    wallets.push({ id: 'w_' + Date.now(), name });
-                } else {
-                    categories.push({ id: (modalTab === 'expense' ? 'e_' : 'i_') + Date.now(), name, type: modalTab, budget: modalTab === 'expense' ? budget : 0, color: palette[categories.length % palette.length] }); 
-                }
-            } 
-            sync(); refreshDropdowns(); renderModalList(); renderUI(); cancelEdit(); 
-        }
-
-        function deleteItem(id) { 
-            if(confirm("Delete this?")) { 
-                if (modalTab === 'wallet') wallets = wallets.filter(w => w.id !== id);
-                else categories = categories.filter(c => c.id !== id);
-                
-                if (editingItemId === id) cancelEdit(); 
-                sync(); refreshDropdowns(); renderModalList(); renderUI(); 
-            } 
-        }
-
-        function renderModalList() {
-            const list = document.getElementById('modalSetupList');
-            let html = '';
-            
-            if (modalTab === 'wallet') {
-                html = wallets.map(w => `<div class="list-row"><div><div class="env-name">${w.name}</div></div><div class="action-btns"><button class="edit-btn" onclick="editItem('${w.id}')">✎</button><button class="del-btn" onclick="deleteItem('${w.id}')">&times;</button></div></div>`).join('');
-            } else {
-                html = categories.filter(c => c.type === modalTab).map(c => `<div class="list-row"><div><div class="env-name"><span class="color-dot" style="background:${c.color}"></span> ${c.name}</div>${modalTab === 'expense' ? `<div class="tx-meta">Limit: $${c.budget}</div>` : ''}</div><div class="action-btns"><button class="edit-btn" onclick="editItem('${c.id}')">✎</button><button class="del-btn" onclick="deleteItem('${c.id}')">&times;</button></div></div>`).join('');
-            }
-            list.innerHTML = html || '<div style="padding: 16px 0; color: var(--ink-light); font-size: 14px;">No items found.</div>';
-        }
-
-        // --- CORE ---
-        function sync() { 
-            localStorage.setItem('bdgt_txs', JSON.stringify(transactions)); 
-            localStorage.setItem('bdgt_cats', JSON.stringify(categories)); 
-            localStorage.setItem('bdgt_wallets', JSON.stringify(wallets));
-        }
-
-        function refreshDropdowns() { 
-            const catSel = document.getElementById('catInput'); 
-            catSel.innerHTML = ''; 
-            categories.filter(c => c.type === type).forEach(c => { catSel.innerHTML += `<option value="${c.id}">${c.name}</option>`; }); 
-            
-            const walSel = document.getElementById('walletInput');
-            walSel.innerHTML = '';
-            wallets.forEach(w => { walSel.innerHTML += `<option value="${w.id}">${w.name}</option>`; });
-        }
-        
-        function renderUI() {
-            const totalInc = transactions.filter(t => t.type === 'income').reduce((s, t) => s + t.amt, 0);
-            const totalExp = transactions.filter(t => t.type === 'expense').reduce((s, t) => s + t.amt, 0);
-            document.getElementById('lblBalance').textContent = `$${(totalInc - totalExp).toFixed(0)}`;
-            document.getElementById('lblTotalIn').textContent = `$${totalInc.toFixed(0)}`;
-            document.getElementById('lblTotalOut').textContent = `$${totalExp.toFixed(0)}`;
-
-            const corrPct = totalInc > 0 ? Math.min((totalExp / totalInc) * 100, 100) : 0;
-            document.getElementById('lblCorrPct').textContent = `${corrPct.toFixed(1)}%`;
-            document.getElementById('corrBar').style.width = `${corrPct}%`;
-
-            let gradientStr = ''; let currentPct = 0;
-            const expCats = categories.filter(c => c.type === 'expense');
-            expCats.forEach(cat => { const spent = transactions.filter(t => t.catId === cat.id && t.type === 'expense').reduce((s, t) => s + t.amt, 0); if (spent > 0 && totalExp > 0) { const slicePct = (spent / totalExp) * 100; gradientStr += `${cat.color} ${currentPct}% ${currentPct + slicePct}%, `; currentPct += slicePct; } });
-            document.getElementById('expensePie').style.background = (totalExp === 0 || gradientStr === '') ? 'conic-gradient(#E2E0D8 0%)' : `conic-gradient(${gradientStr.slice(0, -2)})`;
-
-            document.getElementById('quickTags').innerHTML = expCats.slice(0, 6).map(c => `<button class="tag" onclick="quickFill('${c.id}')">${c.name}</button>`).join('');
-
-            document.getElementById('envList').innerHTML = expCats.map(cat => { const spent = transactions.filter(t => t.catId === cat.id && t.type === 'expense').reduce((s, t) => s + t.amt, 0); const pct = cat.budget > 0 ? Math.min((spent / cat.budget) * 100, 100) : 0; return `<div class="list-row"><div style="flex:1; padding-right: 20px;"><div class="env-name"><span class="color-dot" style="background:${cat.color}"></span> ${cat.name}</div><div class="env-track"><div class="env-fill" style="width: ${pct}%; background:${cat.color}"></div></div></div><div class="env-stats">$${spent.toFixed(0)} / $${cat.budget}</div></div>`; }).join('');
-
-            document.getElementById('txList').innerHTML = transactions.length ? transactions.map(t => { 
-                const cat = categories.find(c => c.id === t.catId); 
-                const wal = wallets.find(w => w.id === t.walletId);
-                const isInc = t.type === 'income'; 
-                return `<div class="list-row"><div><div class="tx-desc">${t.note}</div><div class="tx-meta">${t.date} • ${cat ? cat.name : 'Uncategorized'} ${!isInc && wal ? `<span style="background: #EAE8E1; padding: 2px 6px; border-radius: 4px; margin-left: 4px; font-weight: 600;">${wal.name}</span>` : ''}</div></div><div style="display: flex; align-items: center;"><div class="tx-amt ${isInc ? 'income' : ''}">${isInc ? '+' : '-'}$${t.amt.toFixed(2)}</div><button class="del-btn" onclick="delTx('${t.id}')">&times;</button></div></div>`; 
-            }).join('') : '<div style="padding: 20px 0; color: var(--ink-light);">No activity.</div>';
-        }
-        init();
-    </script>
 </body>
 </html>
