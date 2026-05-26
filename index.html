@@ -72,7 +72,7 @@
         .input-line input[type="number"] { font-size: 24px; font-weight: 700; }
         
         .btn-primary { display: block; width: 100%; background: var(--ink); color: var(--surface); text-align: center; padding: 18px; border-radius: 100px; font-size: 16px; font-weight: 600; border: none; cursor: pointer; margin-top: 24px; }
-        .btn-outline { background: transparent; border: 1.5px solid var(--border); color: var(--ink); padding: 8px 16px; border-radius: 100px; font-size: 12px; font-weight: 600; cursor: pointer; }
+        .btn-outline { background: transparent; border: 1.5px solid var(--border); color: var(--ink); padding: 8px 16px; border-radius: 100px; font-size: 12px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center;}
 
         /* Tags */
         .tags-container { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 12px; margin-bottom: 8px; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
@@ -94,7 +94,11 @@
         .tx-meta { font-size: 12px; color: var(--ink-light); text-transform: uppercase; letter-spacing: 0.5px; }
         .tx-amt { font-size: 16px; font-weight: 600; }
         .tx-amt.income { color: var(--accent); }
-        .del-btn { color: var(--danger); background: none; border: none; font-size: 20px; padding-left: 16px; cursor: pointer;}
+
+        /* Action Buttons */
+        .action-btns { display: flex; align-items: center; gap: 16px; }
+        .edit-btn { color: var(--ink-light); background: none; border: none; font-size: 16px; cursor: pointer; padding: 4px; }
+        .del-btn { color: var(--danger); background: none; border: none; font-size: 20px; padding: 4px; cursor: pointer;}
 
         /* Modal */
         #categoryModal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--bg); z-index: 100; padding: env(safe-area-inset-top) 20px 20px 100px; overflow-y: auto; }
@@ -175,8 +179,8 @@
 
         <div class="form-area">
             <div class="type-toggle">
-                <div class="toggle-btn active" id="modalBtnExpense" onclick="setModalType('expense')">New Expense</div>
-                <div class="toggle-btn" id="modalBtnIncome" onclick="setModalType('income')">New Income</div>
+                <div class="toggle-btn active" id="modalBtnExpense" onclick="setModalType('expense')">Expense</div>
+                <div class="toggle-btn" id="modalBtnIncome" onclick="setModalType('income')">Income</div>
             </div>
 
             <div class="input-line">
@@ -187,7 +191,11 @@
                 <label>Budget Limit</label>
                 <input type="number" id="newCatBudget" placeholder="0.00" inputmode="decimal">
             </div>
-            <button class="btn-primary" onclick="addCategory()">Save Category</button>
+            
+            <div style="display: flex; gap: 12px; margin-top: 24px;">
+                <button class="btn-primary" id="saveCatBtn" onclick="saveCategory()" style="margin-top: 0; flex: 2;">Save Category</button>
+                <button class="btn-outline" id="cancelEditBtn" onclick="cancelEdit()" style="display: none; flex: 1;">Cancel</button>
+            </div>
         </div>
 
         <h2>Current Categories</h2>
@@ -206,8 +214,7 @@
         let transactions = JSON.parse(localStorage.getItem('bdgt_txs')) || [];
         let categories = JSON.parse(localStorage.getItem('bdgt_cats'));
 
-        // DATA MIGRATION FIX: If categories exist but are missing the 'type' field from the previous version, 
-        // this script catches them and safely assigns them as 'expense' so you don't lose your data.
+        // Data Migration & Default Fallback
         if (categories) {
             categories = categories.map((c, i) => {
                 if (!c.type) {
@@ -216,7 +223,6 @@
                 }
                 return c;
             });
-            // Ensure we have at least one income source if none exist after migration
             if (!categories.some(c => c.type === 'income')) {
                 categories.unshift(
                     { id: 'i_salary', name: 'Primary Salary', type: 'income', color: '#2B4C3B' },
@@ -224,7 +230,6 @@
                 );
             }
         } else {
-            // Default setup for brand new loads
             categories = [
                 { id: 'i_salary', name: 'Primary Salary', type: 'income', color: '#2B4C3B' },
                 { id: 'i_other', name: 'Other Income', type: 'income', color: '#4A5D4E' },
@@ -239,10 +244,11 @@
 
         let type = 'expense';
         let modalType = 'expense';
+        let editingCatId = null;
 
         function init() { refreshCatDropdown(); renderUI(); }
 
-        // Main App Interactions
+        // --- MAIN SCREEN ---
         function setType(t) {
             type = t;
             document.getElementById('btnExpense').classList.toggle('active', t === 'expense');
@@ -281,13 +287,16 @@
             sync(); renderUI();
         }
 
-        // Modal Interactions
+        // --- MODAL / CATEGORY MANAGER ---
         function openCatModal() {
             document.getElementById('categoryModal').style.display = 'block';
             renderModalCats();
         }
 
-        function closeCatModal() { document.getElementById('categoryModal').style.display = 'none'; }
+        function closeCatModal() { 
+            document.getElementById('categoryModal').style.display = 'none'; 
+            cancelEdit(); // clear form when closing
+        }
 
         function setModalType(t) {
             modalType = t;
@@ -296,33 +305,72 @@
             document.getElementById('modalBudgetRow').style.display = t === 'income' ? 'none' : 'flex';
         }
 
-        function addCategory() {
+        function editCategory(id) {
+            const cat = categories.find(c => c.id === id);
+            if (!cat) return;
+
+            editingCatId = id;
+            setModalType(cat.type);
+            
+            document.getElementById('newCatName').value = cat.name;
+            if (cat.type === 'expense') {
+                document.getElementById('newCatBudget').value = cat.budget;
+            }
+
+            document.getElementById('saveCatBtn').textContent = 'Update Category';
+            document.getElementById('cancelEditBtn').style.display = 'inline-flex';
+            
+            // Scroll gracefully to top so they see the inputs
+            document.getElementById('categoryModal').scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function cancelEdit() {
+            editingCatId = null;
+            document.getElementById('newCatName').value = '';
+            document.getElementById('newCatBudget').value = '';
+            document.getElementById('saveCatBtn').textContent = 'Save Category';
+            document.getElementById('cancelEditBtn').style.display = 'none';
+            setModalType('expense'); // reset to default
+        }
+
+        function saveCategory() {
             const name = document.getElementById('newCatName').value.trim();
             const budget = parseFloat(document.getElementById('newCatBudget').value);
             
-            if (!name || (modalType === 'expense' && !budget)) return alert('Missing fields.');
+            if (!name || (modalType === 'expense' && isNaN(budget))) return alert('Missing fields.');
 
-            categories.push({ 
-                id: (modalType === 'expense' ? 'e_' : 'i_') + Date.now(), 
-                name, 
-                type: modalType,
-                budget: modalType === 'expense' ? budget : 0,
-                color: palette[categories.length % palette.length]
-            });
+            if (editingCatId) {
+                // Update existing
+                const cat = categories.find(c => c.id === editingCatId);
+                if (cat) {
+                    cat.name = name;
+                    cat.type = modalType;
+                    cat.budget = modalType === 'expense' ? budget : 0;
+                }
+            } else {
+                // Create new
+                categories.push({ 
+                    id: (modalType === 'expense' ? 'e_' : 'i_') + Date.now(), 
+                    name, 
+                    type: modalType,
+                    budget: modalType === 'expense' ? budget : 0,
+                    color: palette[categories.length % palette.length]
+                });
+            }
             
             sync(); refreshCatDropdown(); renderModalCats(); renderUI();
-            document.getElementById('newCatName').value = '';
-            document.getElementById('newCatBudget').value = '';
+            cancelEdit(); // Reset form state
         }
 
         function delCategory(id) {
-            if(confirm("Delete this? History will show as uncategorized.")) {
+            if(confirm("Delete this? Past history will show as uncategorized.")) {
                 categories = categories.filter(c => c.id !== id);
+                if (editingCatId === id) cancelEdit();
                 sync(); refreshCatDropdown(); renderModalCats(); renderUI();
             }
         }
 
-        // Core Renderers
+        // --- CORE RENDERERS ---
         function sync() {
             localStorage.setItem('bdgt_txs', JSON.stringify(transactions));
             localStorage.setItem('bdgt_cats', JSON.stringify(categories));
@@ -345,7 +393,10 @@
                     <div>
                         <div class="env-name"><span class="color-dot" style="background:${c.color}"></span> ${c.name}</div>
                     </div>
-                    <button class="del-btn" onclick="delCategory('${c.id}')">&times;</button>
+                    <div class="action-btns">
+                        <button class="edit-btn" onclick="editCategory('${c.id}')">✎</button>
+                        <button class="del-btn" onclick="delCategory('${c.id}')">&times;</button>
+                    </div>
                 </div>
             `).join('');
 
@@ -355,7 +406,10 @@
                         <div class="env-name"><span class="color-dot" style="background:${c.color}"></span> ${c.name}</div>
                         <div class="tx-meta">Budget: $${c.budget}</div>
                     </div>
-                    <button class="del-btn" onclick="delCategory('${c.id}')">&times;</button>
+                    <div class="action-btns">
+                        <button class="edit-btn" onclick="editCategory('${c.id}')">✎</button>
+                        <button class="del-btn" onclick="delCategory('${c.id}')">&times;</button>
+                    </div>
                 </div>
             `).join('');
 
@@ -368,7 +422,7 @@
             const totalExp = transactions.filter(t => t.type === 'expense').reduce((s, t) => s + t.amt, 0);
             const balance = totalInc - totalExp;
 
-            // 1. Update Dashboard Stats
+            // 1. Dashboard Stats
             document.getElementById('lblBalance').textContent = `$${balance.toFixed(0)}`;
             document.getElementById('lblTotalIn').textContent = `$${totalInc.toFixed(0)}`;
             document.getElementById('lblTotalOut').textContent = `$${totalExp.toFixed(0)}`;
