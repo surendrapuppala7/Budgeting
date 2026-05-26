@@ -5,34 +5,23 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Advisor | Ledger</title>
     <style>
-        /* Boutique Minimalist Theme */
         :root {
-            --bg: #F5F4F0; 
-            --surface: #FFFFFF;
-            --ink: #111111;
-            --ink-light: #666666;
-            --accent: #2B4C3B; 
-            --danger: #A63D2F; 
-            --warning: #D99A5A;
-            --border: #E2E0D8;
-            --radius: 16px;
+            --bg: #F5F4F0; --surface: #FFFFFF; --ink: #111111; --ink-light: #666666;
+            --accent: #2B4C3B; --danger: #A63D2F; --warning: #D99A5A; --border: #E2E0D8; --radius: 16px;
         }
 
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-            font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", Helvetica, Arial, sans-serif;
-        }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", Helvetica, Arial, sans-serif; }
 
+        /* Identical Responsive Wrapper */
         body {
             background-color: var(--bg);
             color: var(--ink);
-            padding: env(safe-area-inset-top) 20px 20px 100px;
             -webkit-font-smoothing: antialiased;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: max(20px, env(safe-area-inset-top)) 20px max(100px, env(safe-area-inset-bottom));
         }
 
-        /* Typography */
         h1 { font-size: 32px; font-weight: 800; letter-spacing: -1px; margin-bottom: 8px; }
         .subtitle { font-size: 15px; color: var(--ink-light); margin-bottom: 32px; font-weight: 500; }
         
@@ -40,28 +29,10 @@
         .nav-link { color: var(--ink-light); text-decoration: none; font-size: 14px; font-weight: 500; border-bottom: 1px solid var(--ink-light); padding-bottom: 2px;}
 
         /* Insight Cards */
-        .card {
-            background: var(--surface);
-            border-radius: var(--radius);
-            padding: 24px;
-            margin-bottom: 20px;
-            border: 1px solid var(--border);
-            box-shadow: 0 4px 12px rgba(0,0,0,0.02);
-        }
+        .card { background: var(--surface); border-radius: var(--radius); padding: 24px; margin-bottom: 20px; border: 1px solid var(--border); box-shadow: 0 4px 12px rgba(0,0,0,0.02); }
+        .card-header { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
 
-        .card-header {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            margin-bottom: 12px;
-        }
-
-        .status-dot {
-            width: 10px;
-            height: 10px;
-            border-radius: 50%;
-            display: inline-block;
-        }
+        .status-dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
         .status-dot.good { background: var(--accent); }
         .status-dot.warn { background: var(--warning); }
         .status-dot.bad { background: var(--danger); }
@@ -71,15 +42,7 @@
         .card-body { font-size: 15px; color: var(--ink-light); line-height: 1.5; }
         .card-body strong { color: var(--ink); font-weight: 600; }
         
-        .card-metric { 
-            font-size: 36px; 
-            font-weight: 800; 
-            letter-spacing: -1.5px; 
-            margin: 16px 0; 
-            color: var(--ink); 
-            line-height: 1;
-        }
-
+        .card-metric { font-size: 36px; font-weight: 800; letter-spacing: -1.5px; margin: 16px 0; color: var(--ink); line-height: 1; }
     </style>
 </head>
 <body>
@@ -92,18 +55,13 @@
         <a href="index.html" class="nav-link">← Ledger</a>
     </div>
 
-    <div id="insightsContainer">
-        </div>
+    <div id="insightsContainer"></div>
 
     <script>
-        // Read from the new data keys established in index.html
         const transactions = JSON.parse(localStorage.getItem('bdgt_txs')) || [];
-        const categories = JSON.parse(localStorage.getItem('bdgt_cats')) || [];
         
         function generateInsights() {
             const container = document.getElementById('insightsContainer');
-            
-            // Calculate totals
             const income = transactions.filter(t => t.type === 'income').reduce((sum, t) => sum + t.amt, 0);
             const expenses = transactions.filter(t => t.type === 'expense').reduce((sum, t) => sum + t.amt, 0);
             const leftover = income - expenses;
@@ -111,94 +69,66 @@
             if (income === 0 && expenses === 0) {
                 container.innerHTML = `
                 <div class="card">
-                    <div class="card-header">
-                        <span class="status-dot warn"></span>
-                        <div class="card-title">Awaiting Data</div>
-                    </div>
+                    <div class="card-header"><span class="status-dot warn"></span><div class="card-title">Awaiting Data</div></div>
                     <div class="card-body">Your ledger is currently empty. Start logging your income sources and expenses on the main page so I can analyze your cash flow and provide targeted strategies.</div>
                 </div>`;
                 return;
             }
 
-            // 1. Savings & Burn Rate Insight
             const savingsRate = income > 0 ? ((leftover / income) * 100).toFixed(1) : 0;
             let savingsHtml = '';
             
             if (income === 0 && expenses > 0) {
                 savingsHtml = `
                 <div class="card">
-                    <div class="card-header">
-                        <span class="status-dot bad"></span>
-                        <div class="card-title">High Burn Rate</div>
-                    </div>
+                    <div class="card-header"><span class="status-dot bad"></span><div class="card-title">High Burn Rate</div></div>
                     <div class="card-body">You have logged expenses but no income yet. Make sure to track your salary and side hustles to get an accurate picture of your wealth accumulation.</div>
                 </div>`;
             } else if (savingsRate >= 20) {
                 savingsHtml = `
                 <div class="card">
-                    <div class="card-header">
-                        <span class="status-dot good"></span>
-                        <div class="card-title">Optimal Savings Rate</div>
-                    </div>
+                    <div class="card-header"><span class="status-dot good"></span><div class="card-title">Optimal Savings Rate</div></div>
                     <div class="card-metric">${savingsRate}%</div>
                     <div class="card-body">You are retaining an excellent portion of your income. The benchmark for aggressive wealth building is 20%, putting you in a prime position to invest or accelerate debt payoff.</div>
                 </div>`;
             } else if (savingsRate > 0) {
                 savingsHtml = `
                 <div class="card">
-                    <div class="card-header">
-                        <span class="status-dot warn"></span>
-                        <div class="card-title">Room for Optimization</div>
-                    </div>
+                    <div class="card-header"><span class="status-dot warn"></span><div class="card-title">Room for Optimization</div></div>
                     <div class="card-metric">${savingsRate}%</div>
                     <div class="card-body">You are currently saving a small portion of your income. Consider reviewing your top expense envelopes to see if you can push this rate closer to the 20% target.</div>
                 </div>`;
             } else {
                 savingsHtml = `
                 <div class="card">
-                    <div class="card-header">
-                        <span class="status-dot bad"></span>
-                        <div class="card-title">Deficit Warning</div>
-                    </div>
+                    <div class="card-header"><span class="status-dot bad"></span><div class="card-title">Deficit Warning</div></div>
                     <div class="card-metric" style="color: var(--danger);">${savingsRate}%</div>
                     <div class="card-body">Your current burn rate exceeds your income. Review your discretionary spending envelopes immediately to reverse this trend.</div>
                 </div>`;
             }
 
-            // 2. Emergency Fund Target
-            // Defaulting to a 3-month baseline, tailored for a homeowner
-            const monthlyAvgExpenses = expenses > 0 ? expenses : 3000; // Fallback if little data
+            const monthlyAvgExpenses = expenses > 0 ? expenses : 3000;
             const emergencyTarget = monthlyAvgExpenses * 3;
-            
             let emergencyHtml = `
             <div class="card">
-                <div class="card-header">
-                    <span class="status-dot info"></span>
-                    <div class="card-title">Cash Reserves Target</div>
-                </div>
+                <div class="card-header"><span class="status-dot info"></span><div class="card-title">Cash Reserves Target</div></div>
                 <div class="card-metric">$${emergencyTarget.toLocaleString('en-US', {minimumFractionDigits: 0, maximumFractionDigits: 0})}</div>
                 <div class="card-body">As a homeowner, unexpected repairs (like an HVAC system or plumbing) can hit hard. Aim to keep a baseline of 3 months of your current expenses completely liquid in a high-yield savings account.</div>
             </div>`;
 
-            // 3. Debt & Mortgage Strategy (If they have a surplus)
             let debtHtml = '';
             if (leftover > 150) {
                 const extraMortgage = (leftover * 0.5).toFixed(0);
                 debtHtml = `
                 <div class="card">
-                    <div class="card-header">
-                        <span class="status-dot good"></span>
-                        <div class="card-title">Mortgage Acceleration</div>
-                    </div>
+                    <div class="card-header"><span class="status-dot good"></span><div class="card-title">Mortgage Acceleration</div></div>
                     <div class="card-body">You have a surplus of <strong>$${leftover.toLocaleString()}</strong> right now. If your cash reserves are fully funded, consider applying <strong>$${extraMortgage}</strong> as a principal-only extra payment to your mortgage. This simple habit systematically shaves years off the backend of your loan and kills compound interest.</div>
                 </div>`;
             }
 
-            // Render the insights
             container.innerHTML = savingsHtml + emergencyHtml + debtHtml;
         }
 
-        // Initialize
         generateInsights();
     </script>
 </body>
