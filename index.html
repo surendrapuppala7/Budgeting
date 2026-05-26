@@ -7,12 +7,30 @@
     <style>
         /* Boutique Minimalist Theme */
         :root {
-            --bg: #F5F4F0; --surface: #FFFFFF; --ink: #111111; --ink-light: #666666;
-            --accent: #2B4C3B; --danger: #A63D2F; --border: #E2E0D8; --radius: 16px;
+            --bg: #F5F4F0; 
+            --surface: #FFFFFF;
+            --ink: #111111;
+            --ink-light: #666666;
+            --accent: #2B4C3B; 
+            --danger: #A63D2F; 
+            --border: #E2E0D8;
+            --radius: 16px;
         }
-        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", sans-serif; }
-        body { background-color: var(--bg); color: var(--ink); padding: env(safe-area-inset-top) 20px 20px 100px; -webkit-font-smoothing: antialiased; }
-        
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", Helvetica, Arial, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg);
+            color: var(--ink);
+            padding: env(safe-area-inset-top) 20px 20px 100px;
+            -webkit-font-smoothing: antialiased;
+        }
+
         h1 { font-size: 32px; font-weight: 800; letter-spacing: -1px; margin-bottom: 24px; }
         h2 { font-size: 14px; font-weight: 600; text-transform: uppercase; letter-spacing: 1.5px; color: var(--ink-light); margin-bottom: 16px; margin-top: 32px;}
         h3 { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; color: var(--ink-light); margin-bottom: 12px; margin-top: 24px;}
@@ -21,11 +39,16 @@
         .nav-links { display: flex; gap: 16px; }
         .nav-link { color: var(--ink-light); text-decoration: none; font-size: 14px; font-weight: 500; border-bottom: 1px solid var(--ink-light); padding-bottom: 2px;}
 
-        /* Dashboard */
+        /* Visual Dashboard */
         .dashboard { display: flex; flex-direction: column; align-items: center; margin-bottom: 40px; }
+
         .donut-wrapper { position: relative; width: 200px; height: 200px; margin-bottom: 24px; }
         .donut-chart { width: 100%; height: 100%; border-radius: 50%; background: conic-gradient(#E2E0D8 0%); transition: background 0.4s ease-out; box-shadow: inset 0 0 0 4px var(--bg); }
-        .donut-hole { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 140px; height: 140px; background: var(--bg); border-radius: 50%; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
+        .donut-hole {
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            width: 140px; height: 140px; background: var(--bg); border-radius: 50%;
+            display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center;
+        }
         .donut-hole span { font-size: 11px; font-weight: 600; color: var(--ink-light); text-transform: uppercase; letter-spacing: 1px; }
         .donut-hole strong { font-size: 28px; font-weight: 800; letter-spacing: -1px; color: var(--ink); margin: 4px 0; }
         .donut-hole .net-label { font-size: 12px; color: var(--accent); font-weight: 600;}
@@ -37,11 +60,12 @@
         .corr-fill { height: 100%; background: var(--accent); transition: width 0.3s; }
         .corr-fill.danger { background: var(--danger); }
 
-        /* Form Controls */
+        /* Segmented Control */
         .type-toggle { display: flex; background: #EAE8E1; border-radius: 100px; padding: 4px; margin-bottom: 20px; width: 100%; }
         .toggle-btn { flex: 1; text-align: center; padding: 10px 0; border-radius: 100px; font-size: 14px; font-weight: 600; color: var(--ink-light); cursor: pointer; transition: all 0.2s ease; }
         .toggle-btn.active { background: var(--surface); color: var(--ink); box-shadow: 0 2px 8px rgba(0,0,0,0.04); }
 
+        /* Form Area */
         .form-area { margin-bottom: 32px; }
         .input-line { display: flex; align-items: center; border-bottom: 1.5px solid var(--border); padding: 12px 0; }
         .input-line label { width: 90px; font-size: 14px; font-weight: 600; color: var(--ink-light); }
@@ -51,6 +75,7 @@
         .btn-primary { display: block; width: 100%; background: var(--ink); color: var(--surface); text-align: center; padding: 18px; border-radius: 100px; font-size: 16px; font-weight: 600; border: none; cursor: pointer; margin-top: 24px; }
         .btn-outline { background: transparent; border: 1.5px solid var(--border); color: var(--ink); padding: 8px 16px; border-radius: 100px; font-size: 12px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center;}
 
+        /* Tags */
         .tags-container { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 12px; margin-bottom: 8px; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
         .tags-container::-webkit-scrollbar { display: none; }
         .tag { background: var(--surface); border: 1px solid var(--border); color: var(--ink); padding: 8px 16px; border-radius: 100px; font-size: 13px; font-weight: 500; white-space: nowrap; cursor: pointer; }
@@ -70,14 +95,17 @@
         .tx-meta { font-size: 12px; color: var(--ink-light); text-transform: uppercase; letter-spacing: 0.5px; }
         .tx-amt { font-size: 16px; font-weight: 600; }
         .tx-amt.income { color: var(--accent); }
-        
+
+        /* Action Buttons */
         .action-btns { display: flex; align-items: center; gap: 16px; }
         .edit-btn { color: var(--ink-light); background: none; border: none; font-size: 16px; cursor: pointer; padding: 4px; }
         .del-btn { color: var(--danger); background: none; border: none; font-size: 20px; padding: 4px; cursor: pointer;}
 
+        /* Modal */
         #categoryModal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--bg); z-index: 100; padding: env(safe-area-inset-top) 20px 20px 100px; overflow-y: auto; }
         .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 32px; }
         .close-btn { background: none; border: none; font-size: 32px; font-weight: 300; cursor: pointer; color: var(--ink); }
+
     </style>
 </head>
 <body>
@@ -155,16 +183,19 @@
     <h2>Activity</h2>
     <div class="list-wrap" id="txList"></div>
 
+
     <div id="categoryModal">
         <div class="modal-header">
             <h1>Ledger Setup</h1>
             <button class="close-btn" onclick="closeCatModal()">&times;</button>
         </div>
+
         <div class="form-area">
             <div class="type-toggle">
                 <div class="toggle-btn active" id="modalBtnExpense" onclick="setModalType('expense')">Expense</div>
                 <div class="toggle-btn" id="modalBtnIncome" onclick="setModalType('income')">Income</div>
             </div>
+
             <div class="input-line">
                 <label>Name</label>
                 <input type="text" id="newCatName" placeholder="e.g., Target Runs">
@@ -173,30 +204,54 @@
                 <label>Limit</label>
                 <input type="number" id="newCatBudget" placeholder="0.00" inputmode="decimal">
             </div>
+            
             <div style="display: flex; gap: 12px; margin-top: 24px;">
                 <button class="btn-primary" id="saveCatBtn" onclick="saveCategory()" style="margin-top: 0; flex: 2;">Save</button>
                 <button class="btn-outline" id="cancelEditBtn" onclick="cancelEdit()" style="display: none; flex: 1;">Cancel</button>
             </div>
         </div>
+
         <h2>Current Categories</h2>
+        
         <h3>Income Sources</h3>
         <div class="list-wrap" id="modalIncList"></div>
+
         <h3>Expense Envelopes</h3>
         <div class="list-wrap" id="modalExpList" style="margin-bottom: 60px;"></div>
     </div>
 
+
     <script>
-        // Full script logic maintained from previous version, adding Wallet support
         const palette = ['#111111', '#A63D2F', '#D99A5A', '#C2847A', '#7A8B76', '#4A5D4E', '#2B4C3B', '#8E8E93'];
-        let transactions = JSON.parse(localStorage.getItem('bdgt_txs')) || [];
-        let categories = JSON.parse(localStorage.getItem('bdgt_cats')) || [];
         
-        if (categories.length === 0) {
+        let transactions = JSON.parse(localStorage.getItem('bdgt_txs')) || [];
+        let categories = JSON.parse(localStorage.getItem('bdgt_cats'));
+
+        // Data Migration & Default Fallback
+        if (categories) {
+            categories = categories.map((c, i) => {
+                if (!c.type) {
+                    c.type = 'expense';
+                    c.color = palette[i % palette.length];
+                }
+                return c;
+            });
+            if (!categories.some(c => c.type === 'income')) {
+                categories.unshift(
+                    { id: 'i_salary', name: 'Primary Salary', type: 'income', color: '#2B4C3B' },
+                    { id: 'i_other', name: 'Side Hustle / Other', type: 'income', color: '#4A5D4E' }
+                );
+            }
+        } else {
             categories = [
                 { id: 'i_salary', name: 'Primary Salary', type: 'income', color: '#2B4C3B' },
+                { id: 'i_other', name: 'Other Income', type: 'income', color: '#4A5D4E' },
                 { id: 'e_mortgage', name: 'Mortgage & Utilities', type: 'expense', budget: 2500, color: '#111111' },
                 { id: 'e_auto', name: 'EV Charging & Auto', type: 'expense', budget: 150, color: '#A63D2F' },
-                { id: 'e_food', name: 'Dining Out', type: 'expense', budget: 350, color: '#C2847A' }
+                { id: 'e_pet', name: 'Pet Care', type: 'expense', budget: 150, color: '#D99A5A' },
+                { id: 'e_food', name: 'Dining Out', type: 'expense', budget: 350, color: '#C2847A' },
+                { id: 'e_tech', name: 'Home Lab & Tech', type: 'expense', budget: 150, color: '#7A8B76' },
+                { id: 'e_proj', name: 'Home Improvement', type: 'expense', budget: 500, color: '#4A5D4E' },
             ];
         }
 
@@ -204,8 +259,12 @@
         let modalType = 'expense';
         let editingCatId = null;
 
-        function init() { refreshCatDropdown(); renderUI(); }
+        function init() { 
+            refreshCatDropdown(); 
+            renderUI(); 
+        }
 
+        // --- MAIN SCREEN ---
         function setType(t) {
             type = t;
             document.getElementById('btnExpense').classList.toggle('active', t === 'expense');
@@ -215,6 +274,7 @@
             
             // Hide wallet selector if logging income
             document.getElementById('walletInput').parentElement.style.display = t === 'income' ? 'none' : 'flex';
+            
             refreshCatDropdown();
         }
 
@@ -233,59 +293,246 @@
             if (!amt || !note) return alert('Amount and note required.');
 
             transactions.unshift({
-                id: Date.now().toString(), type, amt, note, catId, wallet,
+                id: Date.now().toString(), 
+                type, 
+                amt, 
+                note, 
+                catId, 
+                wallet,
                 date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
             });
 
-            sync(); renderUI();
+            sync(); 
+            renderUI();
+            
             document.getElementById('amtInput').value = '';
             document.getElementById('noteInput').value = '';
             document.activeElement.blur();
         }
 
-        function delTx(id) { transactions = transactions.filter(t => t.id !== id); sync(); renderUI(); }
+        function delTx(id) {
+            transactions = transactions.filter(t => t.id !== id);
+            sync(); 
+            renderUI();
+        }
 
-        // Modal Functions
-        function openCatModal() { document.getElementById('categoryModal').style.display = 'block'; renderModalCats(); }
-        function closeCatModal() { document.getElementById('categoryModal').style.display = 'none'; cancelEdit(); }
-        function setModalType(t) { modalType = t; document.getElementById('modalBtnExpense').classList.toggle('active', t === 'expense'); document.getElementById('modalBtnIncome').classList.toggle('active', t === 'income'); document.getElementById('modalBudgetRow').style.display = t === 'income' ? 'none' : 'flex'; }
-        function editCategory(id) { const cat = categories.find(c => c.id === id); if (!cat) return; editingCatId = id; setModalType(cat.type); document.getElementById('newCatName').value = cat.name; if (cat.type === 'expense') document.getElementById('newCatBudget').value = cat.budget; document.getElementById('saveCatBtn').textContent = 'Update'; document.getElementById('cancelEditBtn').style.display = 'inline-flex'; document.getElementById('categoryModal').scrollTo({ top: 0, behavior: 'smooth' }); }
-        function cancelEdit() { editingCatId = null; document.getElementById('newCatName').value = ''; document.getElementById('newCatBudget').value = ''; document.getElementById('saveCatBtn').textContent = 'Save'; document.getElementById('cancelEditBtn').style.display = 'none'; setModalType('expense'); }
-        function saveCategory() { const name = document.getElementById('newCatName').value.trim(); const budget = parseFloat(document.getElementById('newCatBudget').value); if (!name || (modalType === 'expense' && isNaN(budget))) return alert('Missing fields.'); if (editingCatId) { const cat = categories.find(c => c.id === editingCatId); if (cat) { cat.name = name; cat.type = modalType; cat.budget = modalType === 'expense' ? budget : 0; } } else { categories.push({ id: (modalType === 'expense' ? 'e_' : 'i_') + Date.now(), name, type: modalType, budget: modalType === 'expense' ? budget : 0, color: palette[categories.length % palette.length] }); } sync(); refreshCatDropdown(); renderModalCats(); renderUI(); cancelEdit(); }
-        function delCategory(id) { if(confirm("Delete this?")) { categories = categories.filter(c => c.id !== id); if (editingCatId === id) cancelEdit(); sync(); refreshCatDropdown(); renderModalCats(); renderUI(); } }
+        // --- MODAL / CATEGORY MANAGER ---
+        function openCatModal() {
+            document.getElementById('categoryModal').style.display = 'block';
+            renderModalCats();
+        }
 
-        // Renders
-        function sync() { localStorage.setItem('bdgt_txs', JSON.stringify(transactions)); localStorage.setItem('bdgt_cats', JSON.stringify(categories)); }
-        function refreshCatDropdown() { const select = document.getElementById('catInput'); select.innerHTML = ''; categories.filter(c => c.type === type).forEach(c => { select.innerHTML += `<option value="${c.id}">${c.name}</option>`; }); }
-        
+        function closeCatModal() { 
+            document.getElementById('categoryModal').style.display = 'none'; 
+            cancelEdit(); 
+        }
+
+        function setModalType(t) {
+            modalType = t;
+            document.getElementById('modalBtnExpense').classList.toggle('active', t === 'expense');
+            document.getElementById('modalBtnIncome').classList.toggle('active', t === 'income');
+            document.getElementById('modalBudgetRow').style.display = t === 'income' ? 'none' : 'flex';
+        }
+
+        function editCategory(id) {
+            const cat = categories.find(c => c.id === id);
+            if (!cat) return;
+
+            editingCatId = id;
+            setModalType(cat.type);
+            
+            document.getElementById('newCatName').value = cat.name;
+            if (cat.type === 'expense') {
+                document.getElementById('newCatBudget').value = cat.budget;
+            }
+
+            document.getElementById('saveCatBtn').textContent = 'Update';
+            document.getElementById('cancelEditBtn').style.display = 'inline-flex';
+            
+            document.getElementById('categoryModal').scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function cancelEdit() {
+            editingCatId = null;
+            document.getElementById('newCatName').value = '';
+            document.getElementById('newCatBudget').value = '';
+            document.getElementById('saveCatBtn').textContent = 'Save';
+            document.getElementById('cancelEditBtn').style.display = 'none';
+            setModalType('expense');
+        }
+
+        function saveCategory() {
+            const name = document.getElementById('newCatName').value.trim();
+            const budget = parseFloat(document.getElementById('newCatBudget').value);
+            
+            if (!name || (modalType === 'expense' && isNaN(budget))) return alert('Missing fields.');
+
+            if (editingCatId) {
+                const cat = categories.find(c => c.id === editingCatId);
+                if (cat) {
+                    cat.name = name;
+                    cat.type = modalType;
+                    cat.budget = modalType === 'expense' ? budget : 0;
+                }
+            } else {
+                categories.push({ 
+                    id: (modalType === 'expense' ? 'e_' : 'i_') + Date.now(), 
+                    name, 
+                    type: modalType,
+                    budget: modalType === 'expense' ? budget : 0,
+                    color: palette[categories.length % palette.length]
+                });
+            }
+            
+            sync(); 
+            refreshCatDropdown(); 
+            renderModalCats(); 
+            renderUI();
+            cancelEdit(); 
+        }
+
+        function delCategory(id) {
+            if(confirm("Delete this? Past history will show as uncategorized.")) {
+                categories = categories.filter(c => c.id !== id);
+                if (editingCatId === id) cancelEdit();
+                sync(); 
+                refreshCatDropdown(); 
+                renderModalCats(); 
+                renderUI();
+            }
+        }
+
+        // --- CORE RENDERERS ---
+        function sync() {
+            localStorage.setItem('bdgt_txs', JSON.stringify(transactions));
+            localStorage.setItem('bdgt_cats', JSON.stringify(categories));
+        }
+
+        function refreshCatDropdown() {
+            const select = document.getElementById('catInput');
+            select.innerHTML = '';
+            categories.filter(c => c.type === type).forEach(c => {
+                select.innerHTML += `<option value="${c.id}">${c.name}</option>`;
+            });
+        }
+
         function renderModalCats() {
-            document.getElementById('modalIncList').innerHTML = categories.filter(c => c.type === 'income').map(c => `<div class="list-row"><div><div class="env-name"><span class="color-dot" style="background:${c.color}"></span> ${c.name}</div></div><div class="action-btns"><button class="edit-btn" onclick="editCategory('${c.id}')">✎</button><button class="del-btn" onclick="delCategory('${c.id}')">&times;</button></div></div>`).join('') || '<div style="padding: 16px 0; color: var(--ink-light); font-size: 14px;">No sources.</div>';
-            document.getElementById('modalExpList').innerHTML = categories.filter(c => c.type === 'expense').map(c => `<div class="list-row"><div><div class="env-name"><span class="color-dot" style="background:${c.color}"></span> ${c.name}</div><div class="tx-meta">Budget: $${c.budget}</div></div><div class="action-btns"><button class="edit-btn" onclick="editCategory('${c.id}')">✎</button><button class="del-btn" onclick="delCategory('${c.id}')">&times;</button></div></div>`).join('') || '<div style="padding: 16px 0; color: var(--ink-light); font-size: 14px;">No envelopes.</div>';
+            const incList = document.getElementById('modalIncList');
+            const expList = document.getElementById('modalExpList');
+
+            const incHtml = categories.filter(c => c.type === 'income').map(c => `
+                <div class="list-row">
+                    <div>
+                        <div class="env-name"><span class="color-dot" style="background:${c.color}"></span> ${c.name}</div>
+                    </div>
+                    <div class="action-btns">
+                        <button class="edit-btn" onclick="editCategory('${c.id}')">✎</button>
+                        <button class="del-btn" onclick="delCategory('${c.id}')">&times;</button>
+                    </div>
+                </div>
+            `).join('');
+
+            const expHtml = categories.filter(c => c.type === 'expense').map(c => `
+                <div class="list-row">
+                    <div>
+                        <div class="env-name"><span class="color-dot" style="background:${c.color}"></span> ${c.name}</div>
+                        <div class="tx-meta">Budget: $${c.budget}</div>
+                    </div>
+                    <div class="action-btns">
+                        <button class="edit-btn" onclick="editCategory('${c.id}')">✎</button>
+                        <button class="del-btn" onclick="delCategory('${c.id}')">&times;</button>
+                    </div>
+                </div>
+            `).join('');
+
+            incList.innerHTML = incHtml || '<div style="padding: 16px 0; color: var(--ink-light); font-size: 14px;">No income sources.</div>';
+            expList.innerHTML = expHtml || '<div style="padding: 16px 0; color: var(--ink-light); font-size: 14px;">No expense envelopes.</div>';
         }
 
         function renderUI() {
             const totalInc = transactions.filter(t => t.type === 'income').reduce((s, t) => s + t.amt, 0);
             const totalExp = transactions.filter(t => t.type === 'expense').reduce((s, t) => s + t.amt, 0);
-            document.getElementById('lblBalance').textContent = `$${(totalInc - totalExp).toFixed(0)}`;
+            const balance = totalInc - totalExp;
+
+            // Dashboard Stats
+            document.getElementById('lblBalance').textContent = `$${balance.toFixed(0)}`;
             document.getElementById('lblTotalIn').textContent = `$${totalInc.toFixed(0)}`;
             document.getElementById('lblTotalOut').textContent = `$${totalExp.toFixed(0)}`;
 
+            const netLabel = document.getElementById('lblNetStatus');
+            if (balance < 0) {
+                netLabel.textContent = 'Deficit'; netLabel.className = 'net-label negative';
+            } else {
+                netLabel.textContent = totalInc > 0 ? 'Surplus' : 'Needs Income'; netLabel.className = 'net-label';
+            }
+
+            // Correlation Bar
             const corrPct = totalInc > 0 ? Math.min((totalExp / totalInc) * 100, 100) : 0;
             document.getElementById('lblCorrPct').textContent = `${corrPct.toFixed(1)}%`;
-            document.getElementById('corrBar').style.width = `${corrPct}%`;
+            const corrBar = document.getElementById('corrBar');
+            corrBar.style.width = `${corrPct}%`;
+            corrBar.className = corrPct > 90 ? 'corr-fill danger' : 'corr-fill';
 
+            // Donut Chart
             let gradientStr = ''; let currentPct = 0;
             const expCats = categories.filter(c => c.type === 'expense');
-            expCats.forEach(cat => { const spent = transactions.filter(t => t.catId === cat.id && t.type === 'expense').reduce((s, t) => s + t.amt, 0); if (spent > 0 && totalExp > 0) { const slicePct = (spent / totalExp) * 100; gradientStr += `${cat.color} ${currentPct}% ${currentPct + slicePct}%, `; currentPct += slicePct; } });
-            document.getElementById('expensePie').style.background = (totalExp === 0 || gradientStr === '') ? 'conic-gradient(#E2E0D8 0%)' : `conic-gradient(${gradientStr.slice(0, -2)})`;
+            expCats.forEach(cat => {
+                const spent = transactions.filter(t => t.catId === cat.id && t.type === 'expense').reduce((s, t) => s + t.amt, 0);
+                if (spent > 0 && totalExp > 0) {
+                    const slicePct = (spent / totalExp) * 100;
+                    gradientStr += `${cat.color} ${currentPct}% ${currentPct + slicePct}%, `;
+                    currentPct += slicePct;
+                }
+            });
 
-            document.getElementById('quickTags').innerHTML = expCats.slice(0, 6).map(c => `<button class="tag" onclick="quickFill('${c.id}')">${c.name}</button>`).join('');
+            const donut = document.getElementById('expensePie');
+            if (totalExp === 0 || gradientStr === '') { donut.style.background = 'conic-gradient(#E2E0D8 0%)'; } 
+            else { donut.style.background = `conic-gradient(${gradientStr.slice(0, -2)})`; }
 
-            document.getElementById('envList').innerHTML = expCats.map(cat => { const spent = transactions.filter(t => t.catId === cat.id && t.type === 'expense').reduce((s, t) => s + t.amt, 0); const pct = cat.budget > 0 ? Math.min((spent / cat.budget) * 100, 100) : 0; return `<div class="list-row"><div style="flex:1; padding-right: 20px;"><div class="env-name"><span class="color-dot" style="background:${cat.color}"></span> ${cat.name}</div><div class="env-track"><div class="env-fill" style="width: ${pct}%; background:${cat.color}"></div></div></div><div class="env-stats">$${spent.toFixed(0)} / $${cat.budget}</div></div>`; }).join('');
+            // Quick Tags
+            document.getElementById('quickTags').innerHTML = expCats.slice(0, 6).map(c => 
+                `<button class="tag" onclick="quickFill('${c.id}')">${c.name}</button>`
+            ).join('');
 
-            // Added wallet badge to transactions
-            document.getElementById('txList').innerHTML = transactions.length ? transactions.map(t => { const cat = categories.find(c => c.id === t.catId); const isInc = t.type === 'income'; return `<div class="list-row"><div><div class="tx-desc">${t.note}</div><div class="tx-meta">${t.date} • ${cat ? cat.name : 'Uncategorized'} <span style="background: #EAE8E1; padding: 2px 6px; border-radius: 4px; margin-left: 4px; font-weight: 600;">${t.wallet || 'Cash'}</span></div></div><div style="display: flex; align-items: center;"><div class="tx-amt ${isInc ? 'income' : ''}">${isInc ? '+' : '-'}$${t.amt.toFixed(2)}</div><button class="del-btn" onclick="delTx('${t.id}')">&times;</button></div></div>`; }).join('') : '<div style="padding: 20px 0; color: var(--ink-light);">No activity.</div>';
+            // Breakdown List
+            document.getElementById('envList').innerHTML = expCats.map(cat => {
+                const spent = transactions.filter(t => t.catId === cat.id && t.type === 'expense').reduce((s, t) => s + t.amt, 0);
+                const pct = cat.budget > 0 ? Math.min((spent / cat.budget) * 100, 100) : 0;
+                return `
+                    <div class="list-row">
+                        <div style="flex:1; padding-right: 20px;">
+                            <div class="env-name"><span class="color-dot" style="background:${cat.color}"></span> ${cat.name}</div>
+                            <div class="env-track"><div class="env-fill" style="width: ${pct}%; background:${cat.color}"></div></div>
+                        </div>
+                        <div class="env-stats">$${spent.toFixed(0)} / $${cat.budget}</div>
+                    </div>`;
+            }).join('');
+
+            // Activity List
+            const txList = document.getElementById('txList');
+            if (!transactions.length) { 
+                txList.innerHTML = '<div style="padding: 20px 0; color: var(--ink-light);">No activity yet.</div>'; 
+                return; 
+            }
+
+            txList.innerHTML = transactions.map(t => {
+                const cat = categories.find(c => c.id === t.catId);
+                const catName = cat ? cat.name : 'Uncategorized';
+                const isInc = t.type === 'income';
+                return `
+                    <div class="list-row">
+                        <div>
+                            <div class="tx-desc">${t.note}</div>
+                            <div class="tx-meta">${t.date} • ${catName} <span style="background: #EAE8E1; padding: 2px 6px; border-radius: 4px; margin-left: 4px; font-weight: 600;">${t.wallet || 'Cash'}</span></div>
+                        </div>
+                        <div style="display: flex; align-items: center;">
+                            <div class="tx-amt ${isInc ? 'income' : ''}">${isInc ? '+' : '-'}$${t.amt.toFixed(2)}</div>
+                            <button class="del-btn" onclick="delTx('${t.id}')">&times;</button>
+                        </div>
+                    </div>`;
+            }).join('');
         }
+
         init();
     </script>
 </body>
