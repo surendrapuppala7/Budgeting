@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Financial Advisor</title>
+    <style>
+        :root {
+            --bg-color: #f4f4f9;
+            --card-bg: #ffffff;
+            --text-main: #333333;
+            --primary: #007aff;
+            --success: #34c759;
+            --warning: #ffcc00;
+            --danger: #ff3b30;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            padding: env(safe-area-inset-top) 16px 80px 16px;
+            font-family: -apple-system, sans-serif;
+        }
+
+        header { text-align: center; padding: 20px 0; }
+        .nav-link { color: var(--primary); text-decoration: none; font-weight: 600; margin-bottom: 20px; display: inline-block;}
+
+        .insight-card {
+            background: var(--card-bg);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 16px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+            border-left: 5px solid var(--primary);
+        }
+
+        .insight-card.success { border-left-color: var(--success); }
+        .insight-card.warning { border-left-color: var(--warning); }
+        .insight-card.danger { border-left-color: var(--danger); }
+
+        .insight-title { font-weight: 700; margin-bottom: 8px; font-size: 18px; }
+        .insight-body { font-size: 15px; line-height: 1.5; color: #555; }
+        
+        .metric { font-size: 24px; font-weight: bold; margin: 10px 0; color: var(--text-main); }
+    </style>
+</head>
+<body>
+
+    <header>
+        <a href="index.html" class="nav-link">← Back to Budget</a>
+        <h1>Your AI Advisor</h1>
+    </header>
+
+    <div id="insightsContainer">
+        <!-- AI Advice populates here -->
+    </div>
+
+    <script>
+        // Load data from the main app
+        const transactions = JSON.parse(localStorage.getItem('budget_transactions')) || [];
+        
+        function generateInsights() {
+            const container = document.getElementById('insightsContainer');
+            
+            // Calculate totals
+            const income = transactions.filter(t => t.type === 'income').reduce((sum, t) => sum + t.amount, 0);
+            const expenses = transactions.filter(t => t.type === 'expense').reduce((sum, t) => sum + t.amount, 0);
+            const leftover = income - expenses;
+
+            if (income === 0) {
+                container.innerHTML = `<div class="insight-card warning">
+                    <div class="insight-title">Need More Data</div>
+                    <div class="insight-body">Add your salary/income on the main budget page so I can analyze your cash flow.</div>
+                </div>`;
+                return;
+            }
+
+            const savingsRate = ((leftover / income) * 100).toFixed(1);
+            
+            // 1. Savings Rate Insight
+            let savingsHtml = '';
+            if (savingsRate >= 20) {
+                savingsHtml = `<div class="insight-card success">
+                    <div class="insight-title">Great Savings Rate!</div>
+                    <div class="insight-body">You are saving <strong>${savingsRate}%</strong> of your income. The standard recommendation is 20%, so you are in an excellent position to build wealth.</div>
+                </div>`;
+            } else if (savingsRate > 0) {
+                savingsHtml = `<div class="insight-card warning">
+                    <div class="insight-title">Room to Grow Savings</div>
+                    <div class="insight-body">You are saving <strong>${savingsRate}%</strong> of your income. Try cutting back on discretionary categories to push this closer to the 20% target.</div>
+                </div>`;
+            } else {
+                savingsHtml = `<div class="insight-card danger">
+                    <div class="insight-title">Deficit Warning</div>
+                    <div class="insight-body">You are spending more than you earn. Review your highest expense categories immediately.</div>
+                </div>`;
+            }
+
+            // 2. Emergency Fund Target
+            // Assuming 3 months of current expenses as the baseline emergency fund for home owners
+            const emergencyTarget = expenses * 3;
+            let emergencyHtml = `<div class="insight-card">
+                <div class="insight-title">Emergency Fund Target</div>
+                <div class="metric">$${emergencyTarget.toFixed(2)}</div>
+                <div class="insight-body">As a homeowner, you should aim to have 3 to 6 months of expenses in a high-yield savings account. Based on your current spending, try to keep at least this amount completely liquid for unexpected repairs or job loss.</div>
+            </div>`;
+
+            // 3. Debt & Mortgage Strategy (If they have leftover cash)
+            let debtHtml = '';
+            if (leftover > 100) {
+                // Suggest putting a percentage of leftover cash toward mortgage
+                const extraMortgage = (leftover * 0.5).toFixed(2);
+                debtHtml = `<div class="insight-card success">
+                    <div class="insight-title">Mortgage Acceleration Strategy</div>
+                    <div class="insight-body">You have $${leftover.toFixed(2)} unallocated this month. If your emergency fund is full, consider applying <strong>$${extraMortgage}</strong> as an extra principal-only payment to your mortgage. This will drastically reduce the lifetime interest you pay.</div>
+                </div>`;
+            }
+
+            // Render all insights
+            container.innerHTML = savingsHtml + emergencyHtml + debtHtml;
+        }
+
+        // Run the advisor engine
+        generateInsights();
+    </script>
+</body>
+</html>
