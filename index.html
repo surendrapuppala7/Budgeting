@@ -23,11 +23,13 @@
 
         h1 { font-size: 32px; font-weight: 800; letter-spacing: -1px; margin-bottom: 24px; }
         h2 { font-size: 14px; font-weight: 600; text-transform: uppercase; letter-spacing: 1.5px; color: var(--ink-light); margin-bottom: 16px; margin-top: 32px;}
-        h3 { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; color: var(--ink-light); margin-bottom: 12px; margin-top: 24px;}
         
-        .header-top { display: flex; justify-content: space-between; align-items: baseline; }
+        .header-top { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 16px;}
         .nav-links { display: flex; gap: 16px; align-items: center;}
         .nav-link { color: var(--ink-light); text-decoration: none; font-size: 14px; font-weight: 500; border-bottom: 1px solid var(--ink-light); padding-bottom: 2px; cursor: pointer;}
+        
+        .filter-row { display: flex; justify-content: center; margin-bottom: 24px; }
+        .filter-select { background: var(--surface); border: 1px solid var(--border); padding: 8px 16px; border-radius: 100px; font-size: 14px; font-weight: 600; color: var(--ink); outline: none; -webkit-appearance: none; text-align: center;}
 
         /* Visual Dashboard */
         .dashboard { display: flex; flex-direction: column; align-items: center; margin-bottom: 40px; width: 100%;}
@@ -50,7 +52,7 @@
         .toggle-btn { flex: 1; text-align: center; padding: 10px 0; border-radius: 100px; font-size: 14px; font-weight: 600; color: var(--ink-light); cursor: pointer; transition: all 0.2s ease; }
         .toggle-btn.active { background: var(--surface); color: var(--ink); box-shadow: 0 2px 8px rgba(0,0,0,0.04); }
 
-        /* Form Area - Right Aligned Inputs */
+        /* Form Area */
         .form-area { margin-bottom: 32px; }
         .input-line { display: flex; justify-content: space-between; align-items: center; border-bottom: 1.5px solid var(--border); padding: 16px 0; }
         .input-line label { font-size: 15px; font-weight: 600; color: var(--ink-light); flex-shrink: 0;}
@@ -124,7 +126,6 @@
         let modalTab = 'expense';
         let editingItemId = null;
 
-        // Auth Listener: The Gatekeeper
         onAuthStateChanged(auth, (user) => {
             if (user) {
                 currentUser = user;
@@ -144,40 +145,48 @@
         window.login = () => signInWithPopup(auth, provider);
         window.logout = () => signOut(auth);
 
-        // Core Cloud Sync
+        // Core Cloud Sync with Recurring Engine
         async function initCloudSync(uid) {
-            // 1. Sync Settings (Envelopes & Wallets)
             const settingsRef = doc(db, `users/${uid}/settings/data`);
-            unsubscribeSettings = onSnapshot(settingsRef, (docSnap) => {
+            unsubscribeSettings = onSnapshot(settingsRef, async (docSnap) => {
                 if (docSnap.exists()) {
                     const data = docSnap.data();
                     categories = data.categories || [];
                     wallets = data.wallets || [];
+                    
+                    const recurringRules = data.recurring || [];
+                    const lastProcessed = data.lastProcessed || 0;
+                    const now = Date.now();
+                    
+                    // Check for recurring items every 12 hours
+                    if (now - lastProcessed > 43200000) { 
+                        await processRecurringCloudItems(uid, recurringRules);
+                        await setDoc(settingsRef, { lastProcessed: now }, { merge: true });
+                    }
                 } else {
-                    // First time login - Create default setup
                     categories = [
                         { id: 'i_salary', name: 'Primary Salary', type: 'income', color: '#2B4C3B' },
-                        { id: 'i_other', name: 'Other Income', type: 'income', color: '#4A5D4E' },
                         { id: 'e_mortgage', name: 'Mortgage & Utilities', type: 'expense', budget: 2500, color: '#111111' },
                         { id: 'e_auto', name: 'EV Charging & Auto', type: 'expense', budget: 150, color: '#A63D2F' },
-                        { id: 'e_pet', name: 'Pet Care', type: 'expense', budget: 150, color: '#D99A5A' },
+                        { id: 'e_pet', name: "Piper's Care", type: 'expense', budget: 150, color: '#D99A5A' },
                         { id: 'e_food', name: 'Dining Out', type: 'expense', budget: 350, color: '#C2847A' },
                         { id: 'e_tech', name: 'Home Lab & Tech', type: 'expense', budget: 150, color: '#7A8B76' },
-                        { id: 'e_proj', name: 'Home Improvement', type: 'expense', budget: 500, color: '#4A5D4E' },
+                        { id: 'e_proj', name: 'DIY & Landscaping', type: 'expense', budget: 500, color: '#4A5D4E' },
                     ];
                     wallets = [
                         { id: 'w_chk', name: 'Checking Account' },
-                        { id: 'w_chs', name: 'Chase Card' },
-                        { id: 'w_dsc', name: 'Discover Card' }
+                        { id: 'w_crd', name: 'Credit Card' }
                     ];
-                    saveSettingsToCloud();
+                    
+                    const recurring = [];
+                    
+                    await setDoc(settingsRef, { categories, wallets, recurring, lastProcessed: Date.now() });
                 }
                 refreshDropdowns();
-                renderUI();
+                window.renderUI();
                 renderModalList();
             });
 
-            // 2. Sync Transactions
             const txsRef = collection(db, `users/${uid}/transactions`);
             const q = query(txsRef, orderBy("timestamp", "desc"));
             unsubscribeTxs = onSnapshot(q, (snapshot) => {
@@ -185,9 +194,39 @@
                 snapshot.forEach((doc) => {
                     transactions.push({ id: doc.id, ...doc.data() });
                 });
-                renderUI();
-                document.getElementById('loadingOverlay').style.display = 'none'; // Hide loading screen
+                window.renderUI();
+                document.getElementById('loadingOverlay').style.display = 'none';
             });
+        }
+
+        async function processRecurringCloudItems(uid, rules) {
+            if (!rules || rules.length === 0) return;
+            const txsRef = collection(db, `users/${uid}/transactions`);
+            const now = Date.now();
+            let updatesNeeded = false;
+
+            for (let rule of rules) {
+                const msPerInterval = rule.intervalDays * 86400000;
+                if (now - rule.lastTriggered >= msPerInterval) {
+                    await addDoc(txsRef, {
+                        type: rule.type,
+                        amt: rule.amt,
+                        note: `[Auto] ${rule.note}`,
+                        catId: rule.catId,
+                        walletId: rule.walletId || 'Auto',
+                        date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+                        timestamp: now,
+                        isAuto: true
+                    });
+                    rule.lastTriggered = now;
+                    updatesNeeded = true;
+                }
+            }
+            
+            if (updatesNeeded) {
+                const settingsRef = doc(db, `users/${uid}/settings/data`);
+                await setDoc(settingsRef, { recurring: rules }, { merge: true });
+            }
         }
 
         function saveSettingsToCloud() {
@@ -196,7 +235,6 @@
             setDoc(settingsRef, { categories, wallets }, { merge: true });
         }
 
-        // --- EXPOSE FUNCTIONS TO UI ---
         window.setType = (t) => {
             type = t;
             document.getElementById('btnExpense').classList.toggle('active', t === 'expense');
@@ -249,7 +287,7 @@
             document.getElementById('modalBtnWallet').classList.toggle('active', t === 'wallet'); 
             document.getElementById('modalBudgetRow').style.display = t === 'expense' ? 'flex' : 'none'; 
             document.getElementById('modalNameLabel').textContent = t === 'wallet' ? 'Wallet Name' : 'Name';
-            document.getElementById('newCatName').placeholder = t === 'wallet' ? 'e.g., Citi Card' : 'e.g., Target Runs';
+            document.getElementById('newCatName').placeholder = t === 'wallet' ? 'e.g., Chase Card' : 'e.g., Target Runs';
             const titles = { 'expense': 'Current Expenses', 'income': 'Income Sources', 'wallet': 'Your Wallets' };
             document.getElementById('modalListTitle').textContent = titles[t];
             renderModalList();
@@ -327,9 +365,19 @@
             list.innerHTML = html || '<div style="padding: 16px 0; color: var(--ink-light); font-size: 14px;">No items found.</div>';
         }
 
-        function renderUI() {
-            const totalInc = transactions.filter(t => t.type === 'income').reduce((s, t) => s + t.amt, 0);
-            const totalExp = transactions.filter(t => t.type === 'expense').reduce((s, t) => s + t.amt, 0);
+        window.renderUI = () => {
+            const timeFilter = document.getElementById('timeFilter').value;
+            let activeTxs = transactions;
+
+            // Apply Time Filter Math
+            if (timeFilter === 'month') {
+                const now = new Date();
+                const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).getTime();
+                activeTxs = transactions.filter(t => t.timestamp >= startOfMonth);
+            }
+
+            const totalInc = activeTxs.filter(t => t.type === 'income').reduce((s, t) => s + t.amt, 0);
+            const totalExp = activeTxs.filter(t => t.type === 'expense').reduce((s, t) => s + t.amt, 0);
             document.getElementById('lblBalance').textContent = `$${(totalInc - totalExp).toFixed(0)}`;
             document.getElementById('lblTotalIn').textContent = `$${totalInc.toFixed(0)}`;
             document.getElementById('lblTotalOut').textContent = `$${totalExp.toFixed(0)}`;
@@ -340,19 +388,19 @@
 
             let gradientStr = ''; let currentPct = 0;
             const expCats = categories.filter(c => c.type === 'expense');
-            expCats.forEach(cat => { const spent = transactions.filter(t => t.catId === cat.id && t.type === 'expense').reduce((s, t) => s + t.amt, 0); if (spent > 0 && totalExp > 0) { const slicePct = (spent / totalExp) * 100; gradientStr += `${cat.color} ${currentPct}% ${currentPct + slicePct}%, `; currentPct += slicePct; } });
+            expCats.forEach(cat => { const spent = activeTxs.filter(t => t.catId === cat.id && t.type === 'expense').reduce((s, t) => s + t.amt, 0); if (spent > 0 && totalExp > 0) { const slicePct = (spent / totalExp) * 100; gradientStr += `${cat.color} ${currentPct}% ${currentPct + slicePct}%, `; currentPct += slicePct; } });
             document.getElementById('expensePie').style.background = (totalExp === 0 || gradientStr === '') ? 'conic-gradient(#E2E0D8 0%)' : `conic-gradient(${gradientStr.slice(0, -2)})`;
 
             document.getElementById('quickTags').innerHTML = expCats.slice(0, 6).map(c => `<button class="tag" onclick="quickFill('${c.id}')">${c.name}</button>`).join('');
 
-            document.getElementById('envList').innerHTML = expCats.map(cat => { const spent = transactions.filter(t => t.catId === cat.id && t.type === 'expense').reduce((s, t) => s + t.amt, 0); const pct = cat.budget > 0 ? Math.min((spent / cat.budget) * 100, 100) : 0; return `<div class="list-row"><div style="flex:1; padding-right: 20px;"><div class="env-name"><span class="color-dot" style="background:${cat.color}"></span> ${cat.name}</div><div class="env-track"><div class="env-fill" style="width: ${pct}%; background:${cat.color}"></div></div></div><div class="env-stats">$${spent.toFixed(0)} / $${cat.budget}</div></div>`; }).join('');
+            document.getElementById('envList').innerHTML = expCats.map(cat => { const spent = activeTxs.filter(t => t.catId === cat.id && t.type === 'expense').reduce((s, t) => s + t.amt, 0); const pct = cat.budget > 0 ? Math.min((spent / cat.budget) * 100, 100) : 0; return `<div class="list-row"><div style="flex:1; padding-right: 20px;"><div class="env-name"><span class="color-dot" style="background:${cat.color}"></span> ${cat.name}</div><div class="env-track"><div class="env-fill" style="width: ${pct}%; background:${cat.color}"></div></div></div><div class="env-stats">$${spent.toFixed(0)} / $${cat.budget}</div></div>`; }).join('');
 
-            document.getElementById('txList').innerHTML = transactions.length ? transactions.map(t => { 
+            document.getElementById('txList').innerHTML = activeTxs.length ? activeTxs.map(t => { 
                 const cat = categories.find(c => c.id === t.catId); 
                 const wal = wallets.find(w => w.id === t.walletId);
                 const isInc = t.type === 'income'; 
                 return `<div class="list-row"><div><div class="tx-desc">${t.note}</div><div class="tx-meta">${t.date} • ${cat ? cat.name : 'Uncategorized'} ${!isInc && wal ? `<span style="background: #EAE8E1; padding: 2px 6px; border-radius: 4px; margin-left: 4px; font-weight: 600;">${wal.name}</span>` : ''}</div></div><div style="display: flex; align-items: center;"><div class="tx-amt ${isInc ? 'income' : ''}">${isInc ? '+' : '-'}$${t.amt.toFixed(2)}</div><button class="del-btn" onclick="delTx('${t.id}')">&times;</button></div></div>`; 
-            }).join('') : '<div style="padding: 20px 0; color: var(--ink-light);">No activity yet.</div>';
+            }).join('') : '<div style="padding: 20px 0; color: var(--ink-light);">No activity for this period.</div>';
         }
     </script>
 </head>
@@ -372,8 +420,15 @@
             <div class="nav-links">
                 <a href="goals.html" class="nav-link">Goals</a>
                 <a href="advisor.html" class="nav-link">Advisor</a>
-                <a onclick="logout()" class="nav-link" style="color: var(--danger);">Sign Out</a>
+                <a onclick="logout()" class="nav-link" style="color: var(--danger);">Log Out</a>
             </div>
+        </div>
+        
+        <div class="filter-row">
+            <select id="timeFilter" class="filter-select" onchange="renderUI()">
+                <option value="month">This Month</option>
+                <option value="all">All Time</option>
+            </select>
         </div>
 
         <div class="dashboard">
@@ -453,7 +508,7 @@
 
                 <div class="input-line">
                     <label id="modalNameLabel">Name</label>
-                    <input type="text" id="newCatName" placeholder="e.g., Chase Sapphire">
+                    <input type="text" id="newCatName" placeholder="e.g., Target Runs">
                 </div>
                 <div class="input-line" id="modalBudgetRow">
                     <label>Limit</label>
