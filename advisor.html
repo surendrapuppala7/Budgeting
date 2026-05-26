@@ -3,133 +3,117 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Advisor | Ledger</title>
+    <link rel="manifest" href="manifest.json">
+    <title>Smart Advisor</title>
     <style>
-        :root {
-            --bg: #F5F4F0; --surface: #FFFFFF; --ink: #111111; --ink-light: #666666;
-            --accent: #2B4C3B; --danger: #A63D2F; --warning: #D99A5A; --border: #E2E0D8; --radius: 16px;
-        }
-
-        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", Helvetica, Arial, sans-serif; }
-
-        /* Identical Responsive Wrapper */
-        body {
-            background-color: var(--bg);
-            color: var(--ink);
-            -webkit-font-smoothing: antialiased;
-            max-width: 600px;
-            margin: 0 auto;
-            padding: max(20px, env(safe-area-inset-top)) 20px max(100px, env(safe-area-inset-bottom));
-        }
-
-        h1 { font-size: 32px; font-weight: 800; letter-spacing: -1px; margin-bottom: 8px; }
-        .subtitle { font-size: 15px; color: var(--ink-light); margin-bottom: 32px; font-weight: 500; }
-        
-        .header-top { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 24px; }
-        .nav-link { color: var(--ink-light); text-decoration: none; font-size: 14px; font-weight: 500; border-bottom: 1px solid var(--ink-light); padding-bottom: 2px;}
-
-        /* Insight Cards */
-        .card { background: var(--surface); border-radius: var(--radius); padding: 24px; margin-bottom: 20px; border: 1px solid var(--border); box-shadow: 0 4px 12px rgba(0,0,0,0.02); }
-        .card-header { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
-
-        .status-dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
-        .status-dot.good { background: var(--accent); }
-        .status-dot.warn { background: var(--warning); }
-        .status-dot.bad { background: var(--danger); }
-        .status-dot.info { background: var(--ink); }
-
-        .card-title { font-size: 16px; font-weight: 600; color: var(--ink); letter-spacing: -0.2px; }
-        .card-body { font-size: 15px; color: var(--ink-light); line-height: 1.5; }
-        .card-body strong { color: var(--ink); font-weight: 600; }
-        
-        .card-metric { font-size: 36px; font-weight: 800; letter-spacing: -1.5px; margin: 16px 0; color: var(--ink); line-height: 1; }
+        :root { --bg: #F5F4F0; --surface: #FFFFFF; --ink: #111111; --ink-light: #666666; --accent: #2B4C3B; --danger: #A63D2F; --border: #E2E0D8; --radius: 16px; }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, sans-serif; }
+        body { background-color: var(--bg); color: var(--ink); max-width: 600px; margin: 0 auto; padding: 20px; }
+        .header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 32px; }
+        .back-btn { text-decoration: none; color: var(--ink-light); font-weight: 600; font-size: 14px; }
+        h1 { font-size: 28px; font-weight: 800; letter-spacing: -1px; }
+        .insight-card { background: var(--surface); padding: 20px; border-radius: var(--radius); border: 1px solid var(--border); margin-bottom: 16px; }
+        .insight-card h3 { margin-bottom: 8px; font-size: 16px; color: var(--danger); display: flex; align-items: center; gap: 8px; }
+        .insight-card p { font-size: 14px; color: var(--ink-light); line-height: 1.5; }
+        .insight-card.good h3 { color: var(--accent); }
     </style>
-</head>
-<body>
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+        import { getFirestore, collection, query, getDocs, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-    <div class="header-top">
-        <div>
-            <h1>Advisor</h1>
-            <div class="subtitle">Automated Financial Insights</div>
-        </div>
-        <a href="index.html" class="nav-link">← Ledger</a>
-    </div>
+        const firebaseConfig = {
+            apiKey: "AIzaSyCyYAuJLi67EdCu4FvIEr4QsKCgvlKWXrw",
+            authDomain: "ledger-d3ec5.firebaseapp.com",
+            projectId: "ledger-d3ec5",
+            storageBucket: "ledger-d3ec5.firebasestorage.app",
+            messagingSenderId: "1024737940441",
+            appId: "1:1024737940441:web:670e3c2a660e989f5fffc8"
+        };
 
-    <div id="insightsContainer"></div>
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
 
-    <script>
-        const transactions = JSON.parse(localStorage.getItem('bdgt_txs')) || [];
-        
-        function generateInsights() {
-            const container = document.getElementById('insightsContainer');
-            const income = transactions.filter(t => t.type === 'income').reduce((sum, t) => sum + t.amt, 0);
-            const expenses = transactions.filter(t => t.type === 'expense').reduce((sum, t) => sum + t.amt, 0);
-            const leftover = income - expenses;
+        onAuthStateChanged(auth, async (user) => {
+            if (user) {
+                analyzeData(user.uid);
+            } else {
+                window.location.href = 'index.html';
+            }
+        });
 
-            if (income === 0 && expenses === 0) {
-                container.innerHTML = `
-                <div class="card">
-                    <div class="card-header"><span class="status-dot warn"></span><div class="card-title">Awaiting Data</div></div>
-                    <div class="card-body">Your ledger is currently empty. Start logging your income sources and expenses on the main page so I can analyze your cash flow and provide targeted strategies.</div>
-                </div>`;
+        async function analyzeData(uid) {
+            const container = document.getElementById('insights');
+            const settingsSnap = await getDoc(doc(db, `users/${uid}/settings/data`));
+            const txsSnap = await getDocs(collection(db, `users/${uid}/transactions`));
+            
+            if (!settingsSnap.exists() || txsSnap.empty) {
+                container.innerHTML = "<p>Not enough data yet. Log some transactions to get insights!</p>";
                 return;
             }
 
-            const savingsRate = income > 0 ? ((leftover / income) * 100).toFixed(1) : 0;
-            let savingsHtml = '';
+            const categories = settingsSnap.data().categories || [];
+            let html = "";
+            const now = new Date();
+            const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).getTime();
             
-            if (income === 0 && expenses > 0) {
-                savingsHtml = `
-                <div class="card">
-                    <div class="card-header"><span class="status-dot bad"></span><div class="card-title">High Burn Rate</div></div>
-                    <div class="card-body">You have logged expenses but no income yet. Make sure to track your salary and side hustles to get an accurate picture of your wealth accumulation.</div>
-                </div>`;
-            } else if (savingsRate >= 20) {
-                savingsHtml = `
-                <div class="card">
-                    <div class="card-header"><span class="status-dot good"></span><div class="card-title">Optimal Savings Rate</div></div>
-                    <div class="card-metric">${savingsRate}%</div>
-                    <div class="card-body">You are retaining an excellent portion of your income. The benchmark for aggressive wealth building is 20%, putting you in a prime position to invest or accelerate debt payoff.</div>
-                </div>`;
-            } else if (savingsRate > 0) {
-                savingsHtml = `
-                <div class="card">
-                    <div class="card-header"><span class="status-dot warn"></span><div class="card-title">Room for Optimization</div></div>
-                    <div class="card-metric">${savingsRate}%</div>
-                    <div class="card-body">You are currently saving a small portion of your income. Consider reviewing your top expense envelopes to see if you can push this rate closer to the 20% target.</div>
-                </div>`;
-            } else {
-                savingsHtml = `
-                <div class="card">
-                    <div class="card-header"><span class="status-dot bad"></span><div class="card-title">Deficit Warning</div></div>
-                    <div class="card-metric" style="color: var(--danger);">${savingsRate}%</div>
-                    <div class="card-body">Your current burn rate exceeds your income. Review your discretionary spending envelopes immediately to reverse this trend.</div>
-                </div>`;
+            let monthTxs = [];
+            txsSnap.forEach(d => { if(d.data().timestamp >= startOfMonth) monthTxs.push(d.data()); });
+
+            const totalExp = monthTxs.filter(t => t.type === 'expense').reduce((s, t) => s + t.amt, 0);
+
+            // Dining Check
+            const diningCat = categories.find(c => c.name.includes('Dining') || c.name.includes('Food'));
+            if (diningCat) {
+                const spent = monthTxs.filter(t => t.catId === diningCat.id).reduce((s, t) => s + t.amt, 0);
+                if (spent > diningCat.budget * 0.8) {
+                    html += `<div class="insight-card"><h3>⚠️ High Burn: Dining</h3><p>You have spent $${spent.toFixed(0)} on dining out this month. Try cooking the next 3 meals at home to stay under your limit.</p></div>`;
+                }
             }
 
-            const monthlyAvgExpenses = expenses > 0 ? expenses : 3000;
-            const emergencyTarget = monthlyAvgExpenses * 3;
-            let emergencyHtml = `
-            <div class="card">
-                <div class="card-header"><span class="status-dot info"></span><div class="card-title">Cash Reserves Target</div></div>
-                <div class="card-metric">$${emergencyTarget.toLocaleString('en-US', {minimumFractionDigits: 0, maximumFractionDigits: 0})}</div>
-                <div class="card-body">As a homeowner, unexpected repairs (like an HVAC system or plumbing) can hit hard. Aim to keep a baseline of 3 months of your current expenses completely liquid in a high-yield savings account.</div>
-            </div>`;
-
-            let debtHtml = '';
-            if (leftover > 150) {
-                const extraMortgage = (leftover * 0.5).toFixed(0);
-                debtHtml = `
-                <div class="card">
-                    <div class="card-header"><span class="status-dot good"></span><div class="card-title">Mortgage Acceleration</div></div>
-                    <div class="card-body">You have a surplus of <strong>$${leftover.toLocaleString()}</strong> right now. If your cash reserves are fully funded, consider applying <strong>$${extraMortgage}</strong> as a principal-only extra payment to your mortgage. This simple habit systematically shaves years off the backend of your loan and kills compound interest.</div>
-                </div>`;
+            // Tech & Home Lab Check
+            const techCat = categories.find(c => c.name.includes('Tech') || c.name.includes('Lab'));
+            if (techCat) {
+                const spent = monthTxs.filter(t => t.catId === techCat.id).reduce((s, t) => s + t.amt, 0);
+                if (spent > techCat.budget) {
+                    html += `<div class="insight-card"><h3>🔌 Energy Overrun: Infrastructure</h3><p>Your tech and home lab spending is running hot at $${spent.toFixed(0)}. Consider spinning down non-critical Proxmox VMs or checking Docker container utilization to drop the server wattage footprint.</p></div>`;
+                }
             }
 
-            container.innerHTML = savingsHtml + emergencyHtml + debtHtml;
+            // Auto & EV Check
+            const autoCat = categories.find(c => c.name.includes('Auto') || c.name.includes('EV'));
+            if (autoCat) {
+                const spent = monthTxs.filter(t => t.catId === autoCat.id).reduce((s, t) => s + t.amt, 0);
+                if (spent > autoCat.budget) {
+                    html += `<div class="insight-card"><h3>🔋 Fleet Efficiency Warning</h3><p>Auto costs hit $${spent.toFixed(0)}. Double-check that your charging schedule is strictly locked to off-peak hours to maximize efficiency.</p></div>`;
+                }
+            }
+
+            // Pet Check
+            const petCat = categories.find(c => c.name.includes('Pet') || c.name.includes('Piper'));
+            if (petCat) {
+                const spent = monthTxs.filter(t => t.catId === petCat.id).reduce((s, t) => s + t.amt, 0);
+                if (spent > petCat.budget) {
+                    html += `<div class="insight-card"><h3>🦴 Pet Care Alert</h3><p>Piper's care envelope is trending high ($${spent.toFixed(0)}). Review recurring toy or treat subscriptions this month.</p></div>`;
+                }
+            }
+
+            if(html === "") {
+                html = `<div class="insight-card good"><h3>✅ System Nominal</h3><p>All categories are currently operating within defined thresholds. Excellent job managing your burn rate.</p></div>`;
+            }
+
+            container.innerHTML = html;
         }
-
-        generateInsights();
     </script>
+</head>
+<body>
+    <div class="header">
+        <h1>Advisor</h1>
+        <a href="index.html" class="back-btn">← Back to Ledger</a>
+    </div>
+    <div id="insights">
+        <p style="color: var(--ink-light);">Running analytics engine...</p>
+    </div>
 </body>
 </html>
