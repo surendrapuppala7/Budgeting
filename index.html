@@ -6,21 +6,21 @@
     <title>Personal Budget</title>
     <style>
         :root {
-            --bg-color: #f4f4f9;
+            --bg-color: #f2f2f7; /* iOS system background */
             --card-bg: #ffffff;
-            --text-main: #333333;
-            --text-muted: #888888;
+            --text-main: #000000;
+            --text-muted: #8e8e93;
             --primary: #007aff;
             --success: #34c759;
             --danger: #ff3b30;
-            --border: #e5e5ea;
+            --border: #c6c6c8;
         }
 
         * {
             box-sizing: border-box;
             margin: 0;
             padding: 0;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, Helvetica, sans-serif;
         }
 
         body {
@@ -30,192 +30,265 @@
             -webkit-font-smoothing: antialiased;
         }
 
-        h1, h2, h3 { font-weight: 600; }
-
-        /* Header & Dashboard */
         header {
-            text-align: center;
-            padding: 20px 0;
-            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 16px 0 24px 0;
         }
 
+        h1 { font-size: 28px; font-weight: 700; letter-spacing: -0.5px; }
+        .nav-link { color: var(--primary); text-decoration: none; font-weight: 600; font-size: 16px; }
+
+        /* Modern Balance Card */
         .balance-card {
-            background: var(--primary);
+            background: linear-gradient(135deg, #007aff, #005bb5);
             color: white;
-            border-radius: 16px;
+            border-radius: 20px;
             padding: 24px;
-            text-align: center;
-            box-shadow: 0 4px 12px rgba(0, 122, 255, 0.2);
-            margin-bottom: 24px;
+            box-shadow: 0 10px 20px rgba(0, 122, 255, 0.2);
+            margin-bottom: 32px;
         }
 
-        .balance-card h2 { font-size: 14px; font-weight: 500; opacity: 0.9; text-transform: uppercase; letter-spacing: 1px;}
-        .balance-card .amount { font-size: 36px; font-weight: 700; margin-top: 8px; }
+        .balance-card h2 { font-size: 13px; font-weight: 500; opacity: 0.8; text-transform: uppercase; letter-spacing: 0.5px;}
+        .balance-card .amount { font-size: 42px; font-weight: 700; margin-top: 4px; letter-spacing: -1px; }
 
-        /* Sections */
         .section-title {
-            font-size: 18px;
+            font-size: 20px;
+            font-weight: 600;
             margin-bottom: 12px;
             color: var(--text-main);
         }
 
-        .card {
-            background: var(--card-bg);
-            border-radius: 12px;
-            padding: 16px;
-            margin-bottom: 16px;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-        }
-
-        /* Form Elements */
-        input, select, button {
-            width: 100%;
-            padding: 12px;
-            margin-bottom: 12px;
+        /* iOS Segmented Control */
+        .segmented-control {
+            display: flex;
+            background: #e3e3e8;
             border-radius: 8px;
-            border: 1px solid var(--border);
-            font-size: 16px;
-            -webkit-appearance: none;
+            padding: 2px;
+            margin-bottom: 16px;
         }
+        .segment {
+            flex: 1;
+            text-align: center;
+            padding: 8px 0;
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--text-main);
+            border-radius: 6px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .segment.active { background: #ffffff; box-shadow: 0 1px 3px rgba(0,0,0,0.12); font-weight: 600;}
 
-        button {
-            background: var(--primary);
-            color: white;
-            border: none;
+        /* Quick Tags (Horizontal Scroll) */
+        .quick-tags-wrapper {
+            margin-bottom: 16px;
+            margin-left: -16px;
+            margin-right: -16px;
+            padding: 0 16px;
+            overflow-x: auto;
+            white-space: nowrap;
+            -webkit-overflow-scrolling: touch; /* Smooth iOS scroll */
+            scrollbar-width: none; /* Hide scrollbar */
+        }
+        .quick-tags-wrapper::-webkit-scrollbar { display: none; }
+        
+        .tag {
+            display: inline-block;
+            background: #e5f1ff;
+            color: var(--primary);
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 14px;
             font-weight: 600;
+            margin-right: 8px;
+            border: none;
             cursor: pointer;
         }
+        .tag:active { opacity: 0.7; }
 
-        button.btn-danger { background: var(--danger); }
-        button:active { opacity: 0.8; }
-
-        .form-row {
-            display: flex;
-            gap: 12px;
+        /* Input Form */
+        .input-group {
+            background: var(--card-bg);
+            border-radius: 12px;
+            overflow: hidden;
+            margin-bottom: 16px;
         }
-        .form-row > * { flex: 1; }
 
-        /* Categories List */
-        .category-item {
+        .input-row {
+            display: flex;
+            align-items: center;
+            padding: 4px 16px;
+            border-bottom: 0.5px solid var(--border);
+        }
+        .input-row:last-child { border-bottom: none; }
+        
+        .input-row label {
+            width: 80px;
+            font-size: 15px;
+            color: var(--text-main);
+            font-weight: 500;
+        }
+
+        input, select {
+            flex: 1;
+            padding: 12px 0;
+            border: none;
+            font-size: 16px;
+            background: transparent;
+            color: var(--text-main);
+            -webkit-appearance: none;
+            outline: none;
+        }
+        
+        /* Huge amount input */
+        input[type="number"] {
+            font-size: 24px;
+            font-weight: 600;
+            color: var(--primary);
+        }
+
+        .save-btn {
+            width: 100%;
+            background: var(--primary);
+            color: white;
+            padding: 16px;
+            border-radius: 12px;
+            font-size: 17px;
+            font-weight: 600;
+            border: none;
+            cursor: pointer;
+            margin-bottom: 32px;
+            box-shadow: 0 2px 8px rgba(0, 122, 255, 0.2);
+        }
+        .save-btn:active { opacity: 0.8; transform: scale(0.98); }
+
+        /* List Items */
+        .list-card {
+            background: var(--card-bg);
+            border-radius: 12px;
+            padding: 0 16px;
+            margin-bottom: 24px;
+        }
+
+        .list-item {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 12px 0;
-            border-bottom: 1px solid var(--border);
+            padding: 16px 0;
+            border-bottom: 0.5px solid var(--border);
         }
-        .category-item:last-child { border-bottom: none; }
+        .list-item:last-child { border-bottom: none; }
         
+        /* ... keeping the rest of the list styling from before ... */
         .cat-info { flex: 1; }
-        .cat-name { font-weight: 500; margin-bottom: 4px; }
-        
-        .progress-bar {
-            background: var(--bg-color);
-            border-radius: 4px;
-            height: 8px;
-            width: 100%;
-            overflow: hidden;
-            margin-top: 6px;
-        }
-        
-        .progress-fill {
-            height: 100%;
-            border-radius: 4px;
-            background: var(--success);
-            transition: width 0.3s ease;
-        }
+        .cat-name { font-weight: 500; font-size: 15px; margin-bottom: 6px; }
+        .progress-bar { background: var(--bg-color); border-radius: 4px; height: 6px; width: 100%; overflow: hidden; }
+        .progress-fill { height: 100%; border-radius: 4px; background: var(--success); }
         .progress-fill.warning { background: #ffcc00; }
         .progress-fill.danger { background: var(--danger); }
+        .cat-amounts { text-align: right; font-size: 13px; color: var(--text-muted); }
 
-        .cat-amounts {
-            text-align: right;
-            font-size: 14px;
-            color: var(--text-muted);
-        }
-
-        /* Transactions List */
-        .transaction-item {
-            display: flex;
-            justify-content: space-between;
-            padding: 12px 0;
-            border-bottom: 1px solid var(--border);
-        }
-        .transaction-item:last-child { border-bottom: none; }
-        .t-desc { font-weight: 500; }
-        .t-cat { font-size: 12px; color: var(--text-muted); margin-top: 2px;}
-        .t-amount { font-weight: 600; }
+        .t-desc { font-weight: 500; font-size: 15px;}
+        .t-cat { font-size: 13px; color: var(--text-muted); margin-top: 4px;}
+        .t-amount { font-weight: 600; font-size: 15px;}
         .t-amount.income { color: var(--success); }
-        .t-amount.expense { color: var(--text-main); }
-        .delete-btn {
-            color: var(--danger);
-            background: none;
-            border: none;
-            width: auto;
-            padding: 0;
-            font-size: 12px;
-            margin-left: 12px;
-        }
-
+        .delete-btn { color: var(--danger); background: none; border: none; font-size: 18px; margin-left: 16px; padding: 4px;}
     </style>
 </head>
 <body>
 
     <header>
-        <h1>My Budget</h1>
-        <a href="advisor.html" style="color: #007aff; text-decoration: none; font-weight: bold;">View Advisor →</a>
+        <h1>Budget</h1>
+        <a href="advisor.html" class="nav-link">Advisor →</a>
     </header>
 
     <div class="balance-card">
-        <h2>Total Available Balance</h2>
+        <h2>Available Cash</h2>
         <div class="amount" id="totalBalance">$0.00</div>
     </div>
 
-    <h2 class="section-title">Add Transaction</h2>
-    <div class="card">
-        <div class="form-row">
-            <select id="typeSelect">
-                <option value="expense">Expense</option>
-                <option value="income">Income</option>
-            </select>
-            <input type="number" id="amountInput" placeholder="Amount ($)" step="0.01">
-        </div>
-        <input type="text" id="descInput" placeholder="Description (e.g., Gas, Groceries)">
-        <select id="categorySelect">
-            </select>
-        <button onclick="addTransaction()">Save Transaction</button>
+    <div class="quick-tags-wrapper">
+        <button class="tag" onclick="quickFill('food', '🍕 Pizza')">🍕 Pizza</button>
+        <button class="tag" onclick="quickFill('food', '🌮 Tex-Mex')">🌮 Tex-Mex</button>
+        <button class="tag" onclick="quickFill('food', '🍛 Biryani')">🍛 Biryani</button>
+        <button class="tag" onclick="quickFill('auto', '⚡ EV Charging')">⚡ EV Charge</button>
+        <button class="tag" onclick="quickFill('pet', '🐶 Piper Care')">🐶 Piper</button>
+        <button class="tag" onclick="quickFill('tech', '💻 Home Lab')">💻 Home Lab</button>
+        <button class="tag" onclick="quickFill('groceries', '🛒 Groceries')">🛒 Groceries</button>
     </div>
 
-    <h2 class="section-title">Envelopes & Categories</h2>
-    <div class="card" id="categoriesContainer">
-        </div>
+    <div class="segmented-control">
+        <div class="segment active" id="segExpense" onclick="setType('expense')">Expense</div>
+        <div class="segment" id="segIncome" onclick="setType('income')">Income</div>
+    </div>
 
-    <h2 class="section-title">Recent Activity</h2>
-    <div class="card" id="transactionsContainer">
+    <div class="input-group">
+        <div class="input-row">
+            <label>Amount</label>
+            <input type="number" id="amountInput" placeholder="$0.00" step="0.01" inputmode="decimal">
         </div>
+        <div class="input-row">
+            <label>For</label>
+            <input type="text" id="descInput" placeholder="What was this for?">
+        </div>
+        <div class="input-row" id="categoryRow">
+            <label>Category</label>
+            <select id="categorySelect"></select>
+        </div>
+    </div>
+
+    <button class="save-btn" onclick="addTransaction()">Save Transaction</button>
+
+    <h2 class="section-title">Envelopes</h2>
+    <div class="list-card" id="categoriesContainer"></div>
+
+    <h2 class="section-title">Recent</h2>
+    <div class="list-card" id="transactionsContainer"></div>
 
     <script>
-        // Default categories tailored for day-to-day lifestyle
-        const defaultCategories = [
+        // Use existing data or fall back to defaults
+        let transactions = JSON.parse(localStorage.getItem('budget_transactions')) || [];
+        let categories = JSON.parse(localStorage.getItem('budget_categories')) || [
             { id: 'home', name: 'Mortgage & Utilities', budget: 2500 },
-            { id: 'auto', name: 'EV Charging & Auto Insurance', budget: 150 },
-            { id: 'pet', name: 'Piper\'s Food & Pet Care', budget: 100 },
-            { id: 'food', name: 'Dining (Pizza, Tex-Mex, Biryani)', budget: 350 },
-            { id: 'groceries', name: 'Groceries & Household', budget: 400 },
-            { id: 'tech', name: 'Home Lab & Subscriptions', budget: 100 },
+            { id: 'auto', name: 'EV Charging & Auto', budget: 150 },
+            { id: 'pet', name: 'Piper\'s Care', budget: 100 },
+            { id: 'food', name: 'Dining Out', budget: 350 },
+            { id: 'groceries', name: 'Groceries', budget: 400 },
+            { id: 'tech', name: 'Home Lab & Subs', budget: 100 },
             { id: 'recreation', name: 'Pickleball & Hobbies', budget: 80 },
-            { id: 'moto', name: 'Motorcycle Savings Fund', budget: 200 },
-            { id: 'projects', name: 'Home Improvement (HVAC, Sewer)', budget: 500 },
-            { id: 'income', name: 'Income / Salary', budget: 0 } // Used for tracking income
+            { id: 'moto', name: 'Motorcycle Fund', budget: 200 },
+            { id: 'projects', name: 'Home Improvement', budget: 500 },
+            { id: 'income', name: 'Income', budget: 0 }
         ];
 
-        // State Management
-        let transactions = JSON.parse(localStorage.getItem('budget_transactions')) || [];
-        let categories = JSON.parse(localStorage.getItem('budget_categories')) || defaultCategories;
+        let currentType = 'expense';
 
-        // Initialize App
         function init() {
             populateCategoryDropdown();
             updateUI();
         }
+
+        // --- NEW UX FEATURES ---
+
+        function setType(type) {
+            currentType = type;
+            document.getElementById('segExpense').classList.toggle('active', type === 'expense');
+            document.getElementById('segIncome').classList.toggle('active', type === 'income');
+            document.getElementById('categoryRow').style.display = type === 'income' ? 'none' : 'flex';
+        }
+
+        function quickFill(categoryId, desc) {
+            setType('expense'); // Ensure it's on expense
+            document.getElementById('categorySelect').value = categoryId;
+            document.getElementById('descInput').value = desc;
+            
+            // Instantly focus the amount input and pop open the iOS number keyboard
+            document.getElementById('amountInput').focus();
+        }
+
+        // --- END NEW UX FEATURES ---
 
         function populateCategoryDropdown() {
             const select = document.getElementById('categorySelect');
@@ -228,34 +301,33 @@
             });
         }
 
-        // Logic
         function addTransaction() {
-            const type = document.getElementById('typeSelect').value;
             const amount = parseFloat(document.getElementById('amountInput').value);
             const desc = document.getElementById('descInput').value;
-            const categoryId = type === 'income' ? 'income' : document.getElementById('categorySelect').value;
+            const categoryId = currentType === 'income' ? 'income' : document.getElementById('categorySelect').value;
 
             if (!amount || !desc) {
-                alert('Please enter an amount and description.');
+                alert('Please enter an amount and what it was for.');
                 return;
             }
 
             const transaction = {
                 id: Date.now().toString(),
-                type,
+                type: currentType,
                 amount,
                 desc,
                 categoryId,
-                date: new Date().toLocaleDateString()
+                date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
             };
 
             transactions.unshift(transaction);
             saveData();
             updateUI();
 
-            // Clear inputs
+            // Clear inputs and reset focus
             document.getElementById('amountInput').value = '';
             document.getElementById('descInput').value = '';
+            document.activeElement.blur(); // Dismiss keyboard
         }
 
         function deleteTransaction(id) {
@@ -269,85 +341,51 @@
             localStorage.setItem('budget_categories', JSON.stringify(categories));
         }
 
-        function getCategorySpent(categoryId) {
-            return transactions
-                .filter(t => t.categoryId === categoryId && t.type === 'expense')
-                .reduce((sum, t) => sum + t.amount, 0);
-        }
-
-        // UI Updates
         function updateUI() {
-            // 1. Update Balance
+            // Balance
             const totalIncome = transactions.filter(t => t.type === 'income').reduce((sum, t) => sum + t.amount, 0);
             const totalExpense = transactions.filter(t => t.type === 'expense').reduce((sum, t) => sum + t.amount, 0);
-            const balance = totalIncome - totalExpense;
-            document.getElementById('totalBalance').textContent = `$${balance.toFixed(2)}`;
+            document.getElementById('totalBalance').textContent = `$${(totalIncome - totalExpense).toFixed(2)}`;
 
-            // 2. Render Categories
+            // Categories
             const catContainer = document.getElementById('categoriesContainer');
             catContainer.innerHTML = '';
-            
             categories.filter(c => c.id !== 'income').forEach(cat => {
-                const spent = getCategorySpent(cat.id);
+                const spent = transactions.filter(t => t.categoryId === cat.id && t.type === 'expense').reduce((sum, t) => sum + t.amount, 0);
                 const percent = cat.budget > 0 ? Math.min((spent / cat.budget) * 100, 100) : 0;
-                let colorClass = '';
-                if (percent > 85) colorClass = 'danger';
-                else if (percent > 65) colorClass = 'warning';
+                let colorClass = percent > 85 ? 'danger' : (percent > 65 ? 'warning' : '');
 
                 catContainer.innerHTML += `
-                    <div class="category-item">
+                    <div class="list-item">
                         <div class="cat-info">
                             <div class="cat-name">${cat.name}</div>
-                            <div class="progress-bar">
-                                <div class="progress-fill ${colorClass}" style="width: ${percent}%"></div>
-                            </div>
+                            <div class="progress-bar"><div class="progress-fill ${colorClass}" style="width: ${percent}%"></div></div>
                         </div>
-                        <div class="cat-amounts">
-                            $${spent.toFixed(2)} / $${cat.budget}
-                        </div>
-                    </div>
-                `;
+                        <div class="cat-amounts">$${spent.toFixed(0)} / $${cat.budget}</div>
+                    </div>`;
             });
 
-            // 3. Render Transactions
+            // Transactions
             const transContainer = document.getElementById('transactionsContainer');
-            transContainer.innerHTML = '';
+            transContainer.innerHTML = transactions.length ? '' : '<div style="padding: 16px; text-align: center; color: var(--text-muted);">No recent activity.</div>';
             
-            if (transactions.length === 0) {
-                transContainer.innerHTML = '<p style="color: var(--text-muted); text-align: center; font-size: 14px;">No transactions yet.</p>';
-            }
-
             transactions.forEach(t => {
-                const catName = categories.find(c => c.id === t.categoryId)?.name || 'Unknown';
-                const sign = t.type === 'income' ? '+' : '-';
-                const colorClass = t.type === 'income' ? 'income' : 'expense';
-                
+                const catName = categories.find(c => c.id === t.categoryId)?.name || '';
+                const isInc = t.type === 'income';
                 transContainer.innerHTML += `
-                    <div class="transaction-item">
+                    <div class="list-item">
                         <div>
                             <div class="t-desc">${t.desc}</div>
-                            <div class="t-cat">${t.date} • ${catName}</div>
+                            <div class="t-cat">${t.date} ${!isInc ? '• ' + catName : ''}</div>
                         </div>
                         <div style="display: flex; align-items: center;">
-                            <div class="t-amount ${colorClass}">${sign}$${t.amount.toFixed(2)}</div>
+                            <div class="t-amount ${isInc ? 'income' : ''}">${isInc ? '+' : '-'}$${t.amount.toFixed(2)}</div>
                             <button class="delete-btn" onclick="deleteTransaction('${t.id}')">✕</button>
                         </div>
-                    </div>
-                `;
+                    </div>`;
             });
         }
 
-        // Toggle category dropdown based on income/expense
-        document.getElementById('typeSelect').addEventListener('change', function(e) {
-            const catSelect = document.getElementById('categorySelect');
-            if (e.target.value === 'income') {
-                catSelect.style.display = 'none';
-            } else {
-                catSelect.style.display = 'block';
-            }
-        });
-
-        // Start app
         init();
     </script>
 </body>
