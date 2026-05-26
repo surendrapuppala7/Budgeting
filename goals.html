@@ -7,10 +7,15 @@
     <style>
         :root {
             --bg: #F5F4F0; --surface: #FFFFFF; --ink: #111111; --ink-light: #666666;
-            --accent: #2B4C3B; --border: #E2E0D8; --radius: 16px;
+            --accent: #2B4C3B; --danger: #A63D2F; --border: #E2E0D8; --radius: 16px;
         }
+
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", sans-serif; }
-        body { background-color: var(--bg); color: var(--ink); padding: env(safe-area-inset-top) 20px 20px 100px; -webkit-font-smoothing: antialiased; }
+        
+        body {
+            background-color: var(--bg); color: var(--ink); -webkit-font-smoothing: antialiased;
+            max-width: 600px; margin: 0 auto; padding: max(20px, env(safe-area-inset-top)) 20px max(100px, env(safe-area-inset-bottom));
+        }
         
         h1 { font-size: 32px; font-weight: 800; letter-spacing: -1px; margin-bottom: 8px; }
         .subtitle { font-size: 15px; color: var(--ink-light); margin-bottom: 32px; font-weight: 500; }
@@ -18,29 +23,40 @@
         .header-top { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 24px; }
         .nav-link { color: var(--ink-light); text-decoration: none; font-size: 14px; font-weight: 500; border-bottom: 1px solid var(--ink-light); padding-bottom: 2px;}
 
-        .card { background: var(--surface); border-radius: var(--radius); padding: 32px 24px; margin-bottom: 20px; border: 1px solid var(--border); box-shadow: 0 4px 12px rgba(0,0,0,0.02); text-align: center;}
+        /* Goal Card */
+        .card { background: var(--surface); border-radius: var(--radius); padding: 32px 24px; margin-bottom: 20px; border: 1px solid var(--border); box-shadow: 0 4px 12px rgba(0,0,0,0.02); }
+        .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+        .goal-title { font-size: 14px; font-weight: 600; text-transform: uppercase; letter-spacing: 1.5px; color: var(--ink-light); }
+        .goal-amount { font-size: 48px; font-weight: 800; letter-spacing: -2px; color: var(--ink); margin-bottom: 24px; text-align: left;}
         
-        .goal-title { font-size: 14px; font-weight: 600; text-transform: uppercase; letter-spacing: 1.5px; color: var(--ink-light); margin-bottom: 8px;}
-        .goal-amount { font-size: 48px; font-weight: 800; letter-spacing: -2px; color: var(--ink); margin-bottom: 24px;}
-        
-        .projection { background: var(--bg); padding: 20px; border-radius: 12px; margin-bottom: 32px; }
+        .projection { background: var(--bg); padding: 20px; border-radius: 12px; margin-bottom: 32px; text-align: center;}
         .proj-date { font-size: 24px; font-weight: 700; color: var(--accent); margin-top: 4px;}
         .proj-label { font-size: 13px; font-weight: 500; color: var(--ink-light); }
 
         /* Custom Slider */
-        .slider-container { text-align: left; margin-bottom: 16px; }
+        .slider-container { text-align: left; margin-bottom: 8px; }
         .slider-header { display: flex; justify-content: space-between; margin-bottom: 16px; font-weight: 600; font-size: 15px;}
         input[type=range] { -webkit-appearance: none; width: 100%; background: transparent; }
         input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; height: 28px; width: 28px; border-radius: 50%; background: var(--ink); cursor: pointer; margin-top: -10px; box-shadow: 0 2px 6px rgba(0,0,0,0.2);}
         input[type=range]::-webkit-slider-runnable-track { width: 100%; height: 8px; cursor: pointer; background: var(--border); border-radius: 4px; }
         
-        .btn-outline { background: transparent; border: 1.5px solid var(--border); color: var(--ink); padding: 10px 20px; border-radius: 100px; font-size: 14px; font-weight: 600; cursor: pointer; margin-top: 16px;}
+        /* Modal & Form */
+        .input-line { display: flex; justify-content: space-between; align-items: center; border-bottom: 1.5px solid var(--border); padding: 16px 0; }
+        .input-line label { font-size: 15px; font-weight: 600; color: var(--ink-light); flex-shrink: 0;}
+        .input-line input { flex: 1; text-align: right; margin-left: 16px; border: none; background: transparent; font-size: 18px; color: var(--ink); outline: none; -webkit-appearance: none; }
+        .input-line input[type="number"] { font-size: 24px; font-weight: 700; color: var(--accent); }
         
-        /* Modal */
-        .input-line { display: flex; align-items: center; border-bottom: 1.5px solid var(--border); padding: 12px 0; text-align: left;}
-        .input-line label { width: 90px; font-size: 14px; font-weight: 600; color: var(--ink-light); }
-        .input-line input { flex: 1; border: none; background: transparent; font-size: 18px; color: var(--ink); outline: none; -webkit-appearance: none; }
         .btn-primary { display: block; width: 100%; background: var(--ink); color: var(--surface); text-align: center; padding: 18px; border-radius: 100px; font-size: 16px; font-weight: 600; border: none; cursor: pointer; margin-top: 24px; }
+        .btn-outline { display: block; width: 100%; background: transparent; border: 1.5px dashed var(--ink-light); color: var(--ink); padding: 18px; border-radius: 100px; font-size: 15px; font-weight: 600; cursor: pointer; text-align: center; margin-bottom: 32px;}
+        
+        .action-btns { display: flex; align-items: center; gap: 16px; }
+        .edit-btn { color: var(--ink-light); background: none; border: none; font-size: 16px; cursor: pointer; padding: 4px; }
+        .del-btn { color: var(--danger); background: none; border: none; font-size: 20px; padding: 4px; cursor: pointer;}
+
+        #goalModal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--bg); z-index: 100; padding: max(20px, env(safe-area-inset-top)) 20px max(100px, env(safe-area-inset-bottom)); overflow-y: auto; }
+        .modal-content { max-width: 600px; margin: 0 auto; }
+        .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 32px; }
+        .close-btn { background: none; border: none; font-size: 32px; font-weight: 300; cursor: pointer; color: var(--ink); }
     </style>
 </head>
 <body>
@@ -53,58 +69,107 @@
         <a href="index.html" class="nav-link">← Ledger</a>
     </div>
 
-    <div class="card" id="mainView">
-        <div class="goal-title" id="displayGoalName">Kakinada, India Trip</div>
-        <div class="goal-amount" id="displayGoalAmt">$5,000</div>
-        
-        <div class="projection">
-            <div class="proj-label">You will reach your goal by</div>
-            <div class="proj-date" id="displayDate">Dec 2026</div>
+    <button class="btn-outline" onclick="openModal()">+ Create New Target</button>
+
+    <div id="goalsContainer">
         </div>
 
-        <div class="slider-container">
-            <div class="slider-header">
-                <span>Monthly Savings</span>
-                <span style="color: var(--accent);" id="displayMonthly">$625 / mo</span>
+    <div id="goalModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h1 id="modalTitle">Setup Goal</h1>
+                <button class="close-btn" onclick="closeModal()">&times;</button>
             </div>
-            <input type="range" id="monthlySlider" min="50" max="2000" step="25" value="625" oninput="calculateProjection()">
+            <div class="input-line">
+                <label>Target Name</label>
+                <input type="text" id="inputName" placeholder="e.g., Vacation">
+            </div>
+            <div class="input-line">
+                <label>Amount ($)</label>
+                <input type="number" id="inputAmt" placeholder="0" inputmode="numeric">
+            </div>
+            <button class="btn-primary" onclick="saveGoal()">Save Target</button>
         </div>
-
-        <button class="btn-outline" onclick="toggleEdit()">Edit Target Goal</button>
-    </div>
-
-    <div class="card" id="editView" style="display: none;">
-        <h2 style="text-align: left; margin-top: 0;">Setup Goal</h2>
-        <div class="input-line">
-            <label>Goal</label>
-            <input type="text" id="inputName" value="Kakinada, India Trip">
-        </div>
-        <div class="input-line">
-            <label>Amount</label>
-            <input type="number" id="inputAmt" value="5000" inputmode="numeric">
-        </div>
-        <button class="btn-primary" onclick="saveGoal()">Set Target</button>
     </div>
 
     <script>
-        let currentGoal = { name: 'Kakinada, India Trip', amount: 5000 };
+        // Load custom goals or fall back to your default
+        let goals = JSON.parse(localStorage.getItem('bdgt_goals')) || [
+            { id: 'g_1', name: 'Kakinada, India Trip', amount: 5000, monthly: 300 }
+        ];
 
-        function calculateProjection() {
-            const monthly = parseInt(document.getElementById('monthlySlider').value);
-            document.getElementById('displayMonthly').textContent = `$${monthly} / mo`;
+        let editingGoalId = null;
 
-            const monthsNeeded = Math.ceil(currentGoal.amount / monthly);
-            
-            const futureDate = new Date();
-            futureDate.setMonth(futureDate.getMonth() + monthsNeeded);
-            
-            const options = { month: 'short', year: 'numeric' };
-            document.getElementById('displayDate').textContent = futureDate.toLocaleDateString('en-US', options);
+        function renderGoals() {
+            const container = document.getElementById('goalsContainer');
+            container.innerHTML = goals.map(g => {
+                // Calculate Projection Date based on current slider value
+                const monthsNeeded = Math.ceil(g.amount / g.monthly);
+                const futureDate = new Date();
+                futureDate.setMonth(futureDate.getMonth() + monthsNeeded);
+                const dateStr = futureDate.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+
+                return `
+                <div class="card">
+                    <div class="card-header">
+                        <div class="goal-title">${g.name}</div>
+                        <div class="action-btns">
+                            <button class="edit-btn" onclick="openModal('${g.id}')">✎</button>
+                            <button class="del-btn" onclick="deleteGoal('${g.id}')">&times;</button>
+                        </div>
+                    </div>
+                    <div class="goal-amount">$${g.amount.toLocaleString()}</div>
+                    
+                    <div class="projection">
+                        <div class="proj-label">You will reach your goal by</div>
+                        <div class="proj-date" id="date_${g.id}">${dateStr}</div>
+                    </div>
+
+                    <div class="slider-container">
+                        <div class="slider-header">
+                            <span>Monthly Savings</span>
+                            <span style="color: var(--accent);" id="lbl_${g.id}">$${g.monthly} / mo</span>
+                        </div>
+                        <input type="range" id="slide_${g.id}" min="25" max="${Math.max(g.amount, 50)}" step="25" value="${g.monthly}" oninput="updateSlider('${g.id}')" onchange="saveSliderState('${g.id}')">
+                    </div>
+                </div>`;
+            }).join('');
         }
 
-        function toggleEdit() {
-            document.getElementById('mainView').style.display = 'none';
-            document.getElementById('editView').style.display = 'block';
+        function updateSlider(id) {
+            const goal = goals.find(g => g.id === id);
+            const monthly = parseInt(document.getElementById(`slide_${id}`).value);
+            document.getElementById(`lbl_${id}`).textContent = `$${monthly} / mo`;
+
+            const monthsNeeded = Math.ceil(goal.amount / monthly);
+            const futureDate = new Date();
+            futureDate.setMonth(futureDate.getMonth() + monthsNeeded);
+            document.getElementById(`date_${id}`).textContent = futureDate.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+        }
+
+        function saveSliderState(id) {
+            const goal = goals.find(g => g.id === id);
+            goal.monthly = parseInt(document.getElementById(`slide_${id}`).value);
+            localStorage.setItem('bdgt_goals', JSON.stringify(goals));
+        }
+
+        function openModal(id = null) {
+            editingGoalId = id;
+            if (id) {
+                const g = goals.find(x => x.id === id);
+                document.getElementById('inputName').value = g.name;
+                document.getElementById('inputAmt').value = g.amount;
+                document.getElementById('modalTitle').textContent = 'Edit Target';
+            } else {
+                document.getElementById('inputName').value = '';
+                document.getElementById('inputAmt').value = '';
+                document.getElementById('modalTitle').textContent = 'New Target';
+            }
+            document.getElementById('goalModal').style.display = 'block';
+        }
+
+        function closeModal() {
+            document.getElementById('goalModal').style.display = 'none';
         }
 
         function saveGoal() {
@@ -113,24 +178,36 @@
             
             if (!name || !amt) return alert("Enter name and amount");
 
-            currentGoal = { name, amount: amt };
-            
-            document.getElementById('displayGoalName').textContent = name;
-            document.getElementById('displayGoalAmt').textContent = `$${amt.toLocaleString()}`;
-            
-            // Adjust slider max to be logical for the new goal
-            const slider = document.getElementById('monthlySlider');
-            slider.max = Math.max(amt, 100);
-            slider.value = Math.min(Math.ceil(amt / 8), slider.max); // default to ~8 months out
-            
-            document.getElementById('mainView').style.display = 'block';
-            document.getElementById('editView').style.display = 'none';
-            
-            calculateProjection();
+            if (editingGoalId) {
+                const g = goals.find(x => x.id === editingGoalId);
+                g.name = name;
+                g.amount = amt;
+                // adjust monthly if the amount is now smaller than the savings rate
+                if (g.monthly > amt) g.monthly = amt;
+            } else {
+                goals.push({
+                    id: 'g_' + Date.now(),
+                    name,
+                    amount: amt,
+                    monthly: Math.min(Math.ceil(amt / 10), amt) // Default to approx 10 months out
+                });
+            }
+
+            localStorage.setItem('bdgt_goals', JSON.stringify(goals));
+            closeModal();
+            renderGoals();
+        }
+
+        function deleteGoal(id) {
+            if (confirm("Delete this target?")) {
+                goals = goals.filter(g => g.id !== id);
+                localStorage.setItem('bdgt_goals', JSON.stringify(goals));
+                renderGoals();
+            }
         }
 
         // Init
-        calculateProjection();
+        renderGoals();
     </script>
 </body>
 </html>
