@@ -33,127 +33,55 @@
 
         h1 { font-size: 32px; font-weight: 800; letter-spacing: -1px; margin-bottom: 24px; }
         h2 { font-size: 14px; font-weight: 600; text-transform: uppercase; letter-spacing: 1.5px; color: var(--ink-light); margin-bottom: 16px; margin-top: 32px;}
+        h3 { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; color: var(--ink-light); margin-bottom: 12px; margin-top: 24px;}
         
         .header-top { display: flex; justify-content: space-between; align-items: baseline; }
         .nav-link { color: var(--ink-light); text-decoration: none; font-size: 14px; font-weight: 500; border-bottom: 1px solid var(--ink-light); padding-bottom: 2px;}
 
-        /* Visual Dashboard (Donut & Correlation) */
-        .dashboard {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            margin-bottom: 40px;
-        }
+        /* Visual Dashboard */
+        .dashboard { display: flex; flex-direction: column; align-items: center; margin-bottom: 40px; }
 
-        .donut-wrapper {
-            position: relative;
-            width: 200px;
-            height: 200px;
-            margin-bottom: 24px;
-        }
-
-        .donut-chart {
-            width: 100%;
-            height: 100%;
-            border-radius: 50%;
-            background: conic-gradient(#E2E0D8 0%);
-            transition: background 0.4s ease-out;
-            box-shadow: inset 0 0 0 4px var(--bg);
-        }
-
+        .donut-wrapper { position: relative; width: 200px; height: 200px; margin-bottom: 24px; }
+        .donut-chart { width: 100%; height: 100%; border-radius: 50%; background: conic-gradient(#E2E0D8 0%); transition: background 0.4s ease-out; box-shadow: inset 0 0 0 4px var(--bg); }
         .donut-hole {
-            position: absolute;
-            top: 50%; left: 50%;
-            transform: translate(-50%, -50%);
-            width: 140px; height: 140px;
-            background: var(--bg);
-            border-radius: 50%;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            text-align: center;
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            width: 140px; height: 140px; background: var(--bg); border-radius: 50%;
+            display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center;
         }
-
         .donut-hole span { font-size: 11px; font-weight: 600; color: var(--ink-light); text-transform: uppercase; letter-spacing: 1px; }
         .donut-hole strong { font-size: 28px; font-weight: 800; letter-spacing: -1px; color: var(--ink); margin: 4px 0; }
         .donut-hole .net-label { font-size: 12px; color: var(--accent); font-weight: 600;}
         .donut-hole .net-label.negative { color: var(--danger); }
 
-        .correlation-box {
-            width: 100%;
-            background: var(--surface);
-            padding: 16px 20px;
-            border-radius: var(--radius);
-            border: 1px solid var(--border);
-        }
-
+        .correlation-box { width: 100%; background: var(--surface); padding: 16px 20px; border-radius: var(--radius); border: 1px solid var(--border); }
         .corr-header { display: flex; justify-content: space-between; font-size: 13px; font-weight: 600; margin-bottom: 8px; }
         .corr-track { background: var(--bg); height: 6px; border-radius: 3px; overflow: hidden; width: 100%; }
         .corr-fill { height: 100%; background: var(--accent); transition: width 0.3s; }
         .corr-fill.danger { background: var(--danger); }
 
         /* Segmented Control */
-        .type-toggle {
-            display: flex;
-            background: #EAE8E1;
-            border-radius: 100px;
-            padding: 4px;
-            margin-bottom: 20px;
-            width: 100%;
-        }
-        .toggle-btn {
-            flex: 1;
-            text-align: center;
-            padding: 10px 0;
-            border-radius: 100px;
-            font-size: 14px;
-            font-weight: 600;
-            color: var(--ink-light);
-            cursor: pointer;
-            transition: all 0.2s ease;
-        }
+        .type-toggle { display: flex; background: #EAE8E1; border-radius: 100px; padding: 4px; margin-bottom: 20px; width: 100%; }
+        .toggle-btn { flex: 1; text-align: center; padding: 10px 0; border-radius: 100px; font-size: 14px; font-weight: 600; color: var(--ink-light); cursor: pointer; transition: all 0.2s ease; }
         .toggle-btn.active { background: var(--surface); color: var(--ink); box-shadow: 0 2px 8px rgba(0,0,0,0.04); }
 
         /* Form Area */
         .form-area { margin-bottom: 32px; }
-        .input-line {
-            display: flex; align-items: center; border-bottom: 1.5px solid var(--border); padding: 12px 0;
-        }
+        .input-line { display: flex; align-items: center; border-bottom: 1.5px solid var(--border); padding: 12px 0; }
         .input-line label { width: 90px; font-size: 14px; font-weight: 600; color: var(--ink-light); }
-        .input-line input, .input-line select {
-            flex: 1; border: none; background: transparent; font-size: 18px; color: var(--ink); outline: none; -webkit-appearance: none;
-        }
+        .input-line input, .input-line select { flex: 1; border: none; background: transparent; font-size: 18px; color: var(--ink); outline: none; -webkit-appearance: none; }
         .input-line input[type="number"] { font-size: 24px; font-weight: 700; }
         
-        .btn-primary {
-            display: block; width: 100%; background: var(--ink); color: var(--surface);
-            text-align: center; padding: 18px; border-radius: 100px; font-size: 16px; font-weight: 600;
-            border: none; cursor: pointer; margin-top: 24px;
-        }
-
-        .btn-outline {
-            background: transparent; border: 1.5px solid var(--border); color: var(--ink);
-            padding: 8px 16px; border-radius: 100px; font-size: 12px; font-weight: 600; cursor: pointer;
-        }
+        .btn-primary { display: block; width: 100%; background: var(--ink); color: var(--surface); text-align: center; padding: 18px; border-radius: 100px; font-size: 16px; font-weight: 600; border: none; cursor: pointer; margin-top: 24px; }
+        .btn-outline { background: transparent; border: 1.5px solid var(--border); color: var(--ink); padding: 8px 16px; border-radius: 100px; font-size: 12px; font-weight: 600; cursor: pointer; }
 
         /* Tags */
-        .tags-container {
-            display: flex; gap: 8px; overflow-x: auto; padding-bottom: 12px; margin-bottom: 8px;
-            -webkit-overflow-scrolling: touch; scrollbar-width: none;
-        }
+        .tags-container { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 12px; margin-bottom: 8px; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
         .tags-container::-webkit-scrollbar { display: none; }
-        .tag {
-            background: var(--surface); border: 1px solid var(--border); color: var(--ink);
-            padding: 8px 16px; border-radius: 100px; font-size: 13px; font-weight: 500; white-space: nowrap; cursor: pointer;
-        }
+        .tag { background: var(--surface); border: 1px solid var(--border); color: var(--ink); padding: 8px 16px; border-radius: 100px; font-size: 13px; font-weight: 500; white-space: nowrap; cursor: pointer; }
 
         /* Lists */
         .list-wrap { background: var(--surface); border-radius: var(--radius); padding: 0 20px; }
-        .list-row {
-            display: flex; justify-content: space-between; align-items: center;
-            padding: 20px 0; border-bottom: 1px solid var(--border);
-        }
+        .list-row { display: flex; justify-content: space-between; align-items: center; padding: 20px 0; border-bottom: 1px solid var(--border); }
         .list-row:last-child { border-bottom: none; }
         
         .env-name { font-size: 15px; font-weight: 600; margin-bottom: 8px; display: flex; align-items: center; gap: 8px;}
@@ -166,14 +94,10 @@
         .tx-meta { font-size: 12px; color: var(--ink-light); text-transform: uppercase; letter-spacing: 0.5px; }
         .tx-amt { font-size: 16px; font-weight: 600; }
         .tx-amt.income { color: var(--accent); }
-        .del-btn { color: var(--danger); background: none; border: none; font-size: 20px; padding-left: 16px; }
+        .del-btn { color: var(--danger); background: none; border: none; font-size: 20px; padding-left: 16px; cursor: pointer;}
 
         /* Modal */
-        #categoryModal {
-            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: var(--bg); z-index: 100; padding: env(safe-area-inset-top) 20px 20px 100px;
-            overflow-y: auto;
-        }
+        #categoryModal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--bg); z-index: 100; padding: env(safe-area-inset-top) 20px 20px 100px; overflow-y: auto; }
         .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 32px; }
         .close-btn { background: none; border: none; font-size: 32px; font-weight: 300; cursor: pointer; color: var(--ink); }
 
@@ -186,7 +110,6 @@
         <a href="advisor.html" class="nav-link">Advisor</a>
     </div>
 
-    <!-- Visual Dashboard -->
     <div class="dashboard">
         <div class="donut-wrapper">
             <div class="donut-chart" id="expensePie"></div>
@@ -202,9 +125,7 @@
                 <span style="color: var(--ink-light);">Income Spent</span>
                 <span id="lblCorrPct">0%</span>
             </div>
-            <div class="corr-track">
-                <div class="corr-fill" id="corrBar"></div>
-            </div>
+            <div class="corr-track"><div class="corr-fill" id="corrBar"></div></div>
             <div style="display: flex; justify-content: space-between; margin-top: 8px; font-size: 12px; color: var(--ink-light);">
                 <span>Total In: <strong style="color: var(--ink);" id="lblTotalIn">$0</strong></span>
                 <span>Total Out: <strong style="color: var(--ink);" id="lblTotalOut">$0</strong></span>
@@ -212,7 +133,6 @@
         </div>
     </div>
 
-    <!-- Smart Form -->
     <div class="form-area">
         <div class="type-toggle">
             <div class="toggle-btn active" id="btnExpense" onclick="setType('expense')">Expense</div>
@@ -247,7 +167,6 @@
     <div class="list-wrap" id="txList"></div>
 
 
-    <!-- CATEGORY MANAGER MODAL -->
     <div id="categoryModal">
         <div class="modal-header">
             <h1>Ledger Setup</h1>
@@ -262,55 +181,72 @@
 
             <div class="input-line">
                 <label>Name</label>
-                <input type="text" id="newCatName" placeholder="e.g., Side Hustle">
+                <input type="text" id="newCatName" placeholder="e.g., Target Runs">
             </div>
             <div class="input-line" id="modalBudgetRow">
-                <label>Budget</label>
-                <input type="number" id="newCatBudget" placeholder="Monthly Limit" inputmode="decimal">
+                <label>Budget Limit</label>
+                <input type="number" id="newCatBudget" placeholder="0.00" inputmode="decimal">
             </div>
             <button class="btn-primary" onclick="addCategory()">Save Category</button>
         </div>
 
-        <h2>Custom Categories</h2>
-        <div class="list-wrap" id="modalCatList" style="margin-bottom: 60px;"></div>
+        <h2>Current Categories</h2>
+        
+        <h3>Income Sources</h3>
+        <div class="list-wrap" id="modalIncList"></div>
+
+        <h3>Expense Envelopes</h3>
+        <div class="list-wrap" id="modalExpList" style="margin-bottom: 60px;"></div>
     </div>
 
 
     <script>
-        // State Management
-        let transactions = JSON.parse(localStorage.getItem('bdgt_txs')) || [];
+        const palette = ['#111111', '#A63D2F', '#D99A5A', '#C2847A', '#7A8B76', '#4A5D4E', '#2B4C3B', '#8E8E93'];
         
-        // Dynamic Setup Data with tailored defaults, combining Income Sources and Expense Envelopes
-        let categories = JSON.parse(localStorage.getItem('bdgt_cats')) || [
-            // Incomes
-            { id: 'i_salary', name: 'Utah County Gov Salary', type: 'income', color: '#2B4C3B' },
-            { id: 'i_other', name: 'Other Income', type: 'income', color: '#4A5D4E' },
-            // Expenses
-            { id: 'e_mortgage', name: 'Provo Mortgage & Utilities', type: 'expense', budget: 2500, color: '#111111' },
-            { id: 'e_auto', name: 'EV Charging & Auto', type: 'expense', budget: 150, color: '#A63D2F' },
-            { id: 'e_pet', name: 'Piper\'s Food & Care', type: 'expense', budget: 150, color: '#D99A5A' },
-            { id: 'e_food', name: 'Dining (Pizza, Tex-Mex)', type: 'expense', budget: 350, color: '#C2847A' },
-            { id: 'e_tech', name: 'Home Lab & Tech', type: 'expense', budget: 150, color: '#7A8B76' },
-            { id: 'e_proj', name: 'Home Improvement', type: 'expense', budget: 500, color: '#4A5D4E' },
-        ];
+        let transactions = JSON.parse(localStorage.getItem('bdgt_txs')) || [];
+        let categories = JSON.parse(localStorage.getItem('bdgt_cats'));
+
+        // DATA MIGRATION FIX: If categories exist but are missing the 'type' field from the previous version, 
+        // this script catches them and safely assigns them as 'expense' so you don't lose your data.
+        if (categories) {
+            categories = categories.map((c, i) => {
+                if (!c.type) {
+                    c.type = 'expense';
+                    c.color = palette[i % palette.length];
+                }
+                return c;
+            });
+            // Ensure we have at least one income source if none exist after migration
+            if (!categories.some(c => c.type === 'income')) {
+                categories.unshift(
+                    { id: 'i_salary', name: 'Primary Salary', type: 'income', color: '#2B4C3B' },
+                    { id: 'i_other', name: 'Side Hustle / Other', type: 'income', color: '#4A5D4E' }
+                );
+            }
+        } else {
+            // Default setup for brand new loads
+            categories = [
+                { id: 'i_salary', name: 'Primary Salary', type: 'income', color: '#2B4C3B' },
+                { id: 'i_other', name: 'Other Income', type: 'income', color: '#4A5D4E' },
+                { id: 'e_mortgage', name: 'Mortgage & Utilities', type: 'expense', budget: 2500, color: '#111111' },
+                { id: 'e_auto', name: 'EV Charging & Auto', type: 'expense', budget: 150, color: '#A63D2F' },
+                { id: 'e_pet', name: 'Pet Care', type: 'expense', budget: 150, color: '#D99A5A' },
+                { id: 'e_food', name: 'Dining Out', type: 'expense', budget: 350, color: '#C2847A' },
+                { id: 'e_tech', name: 'Home Lab & Tech', type: 'expense', budget: 150, color: '#7A8B76' },
+                { id: 'e_proj', name: 'Home Improvement', type: 'expense', budget: 500, color: '#4A5D4E' },
+            ];
+        }
 
         let type = 'expense';
         let modalType = 'expense';
-        
-        // UI Colors for generated charts
-        const palette = ['#111111', '#A63D2F', '#D99A5A', '#C2847A', '#7A8B76', '#4A5D4E', '#2B4C3B', '#8E8E93'];
 
-        function init() {
-            refreshCatDropdown();
-            renderUI();
-        }
+        function init() { refreshCatDropdown(); renderUI(); }
 
         // Main App Interactions
         function setType(t) {
             type = t;
             document.getElementById('btnExpense').classList.toggle('active', t === 'expense');
             document.getElementById('btnIncome').classList.toggle('active', t === 'income');
-            
             document.getElementById('catLabel').textContent = t === 'income' ? 'Source' : 'Envelope';
             document.getElementById('quickTags').style.display = t === 'income' ? 'none' : 'flex';
             refreshCatDropdown();
@@ -330,8 +266,7 @@
             if (!amt || !note) return alert('Amount and note required.');
 
             transactions.unshift({
-                id: Date.now().toString(),
-                type, amt, note, catId,
+                id: Date.now().toString(), type, amt, note, catId,
                 date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
             });
 
@@ -352,9 +287,7 @@
             renderModalCats();
         }
 
-        function closeCatModal() {
-            document.getElementById('categoryModal').style.display = 'none';
-        }
+        function closeCatModal() { document.getElementById('categoryModal').style.display = 'none'; }
 
         function setModalType(t) {
             modalType = t;
@@ -369,14 +302,12 @@
             
             if (!name || (modalType === 'expense' && !budget)) return alert('Missing fields.');
 
-            const newColor = palette[categories.length % palette.length];
-            
             categories.push({ 
                 id: (modalType === 'expense' ? 'e_' : 'i_') + Date.now(), 
                 name, 
                 type: modalType,
                 budget: modalType === 'expense' ? budget : 0,
-                color: newColor
+                color: palette[categories.length % palette.length]
             });
             
             sync(); refreshCatDropdown(); renderModalCats(); renderUI();
@@ -400,23 +331,36 @@
         function refreshCatDropdown() {
             const select = document.getElementById('catInput');
             select.innerHTML = '';
-            const filteredCats = categories.filter(c => c.type === type);
-            filteredCats.forEach(c => {
+            categories.filter(c => c.type === type).forEach(c => {
                 select.innerHTML += `<option value="${c.id}">${c.name}</option>`;
             });
         }
 
         function renderModalCats() {
-            const list = document.getElementById('modalCatList');
-            list.innerHTML = categories.map(c => `
+            const incList = document.getElementById('modalIncList');
+            const expList = document.getElementById('modalExpList');
+
+            const incHtml = categories.filter(c => c.type === 'income').map(c => `
                 <div class="list-row">
                     <div>
                         <div class="env-name"><span class="color-dot" style="background:${c.color}"></span> ${c.name}</div>
-                        <div class="tx-meta">${c.type === 'expense' ? 'Budget: $' + c.budget : 'Income Source'}</div>
                     </div>
                     <button class="del-btn" onclick="delCategory('${c.id}')">&times;</button>
                 </div>
             `).join('');
+
+            const expHtml = categories.filter(c => c.type === 'expense').map(c => `
+                <div class="list-row">
+                    <div>
+                        <div class="env-name"><span class="color-dot" style="background:${c.color}"></span> ${c.name}</div>
+                        <div class="tx-meta">Budget: $${c.budget}</div>
+                    </div>
+                    <button class="del-btn" onclick="delCategory('${c.id}')">&times;</button>
+                </div>
+            `).join('');
+
+            incList.innerHTML = incHtml || '<div style="padding: 16px 0; color: var(--ink-light); font-size: 14px;">No income sources.</div>';
+            expList.innerHTML = expHtml || '<div style="padding: 16px 0; color: var(--ink-light); font-size: 14px;">No expense envelopes.</div>';
         }
 
         function renderUI() {
@@ -431,25 +375,21 @@
 
             const netLabel = document.getElementById('lblNetStatus');
             if (balance < 0) {
-                netLabel.textContent = 'Deficit';
-                netLabel.className = 'net-label negative';
+                netLabel.textContent = 'Deficit'; netLabel.className = 'net-label negative';
             } else {
-                netLabel.textContent = totalInc > 0 ? 'Surplus' : 'Needs Income';
-                netLabel.className = 'net-label';
+                netLabel.textContent = totalInc > 0 ? 'Surplus' : 'Needs Income'; netLabel.className = 'net-label';
             }
 
-            // 2. Income/Expense Correlation Bar
+            // 2. Correlation Bar
             const corrPct = totalInc > 0 ? Math.min((totalExp / totalInc) * 100, 100) : 0;
             document.getElementById('lblCorrPct').textContent = `${corrPct.toFixed(1)}%`;
             const corrBar = document.getElementById('corrBar');
             corrBar.style.width = `${corrPct}%`;
             corrBar.className = corrPct > 90 ? 'corr-fill danger' : 'corr-fill';
 
-            // 3. Dynamic Donut Chart (CSS Conic Gradient)
-            let gradientStr = '';
-            let currentPct = 0;
+            // 3. Donut Chart
+            let gradientStr = ''; let currentPct = 0;
             const expCats = categories.filter(c => c.type === 'expense');
-            
             expCats.forEach(cat => {
                 const spent = transactions.filter(t => t.catId === cat.id && t.type === 'expense').reduce((s, t) => s + t.amt, 0);
                 if (spent > 0 && totalExp > 0) {
@@ -460,12 +400,8 @@
             });
 
             const donut = document.getElementById('expensePie');
-            if (totalExp === 0 || gradientStr === '') {
-                donut.style.background = 'conic-gradient(#E2E0D8 0%)';
-            } else {
-                gradientStr = gradientStr.slice(0, -2); // remove last comma
-                donut.style.background = `conic-gradient(${gradientStr})`;
-            }
+            if (totalExp === 0 || gradientStr === '') { donut.style.background = 'conic-gradient(#E2E0D8 0%)'; } 
+            else { donut.style.background = `conic-gradient(${gradientStr.slice(0, -2)})`; }
 
             // 4. Quick Tags
             document.getElementById('quickTags').innerHTML = expCats.slice(0, 6).map(c => 
@@ -483,16 +419,12 @@
                             <div class="env-track"><div class="env-fill" style="width: ${pct}%; background:${cat.color}"></div></div>
                         </div>
                         <div class="env-stats">$${spent.toFixed(0)} / $${cat.budget}</div>
-                    </div>
-                `;
+                    </div>`;
             }).join('');
 
             // 6. Activity List
             const txList = document.getElementById('txList');
-            if (!transactions.length) {
-                txList.innerHTML = '<div style="padding: 20px 0; color: var(--ink-light);">No activity yet.</div>';
-                return;
-            }
+            if (!transactions.length) { txList.innerHTML = '<div style="padding: 20px 0; color: var(--ink-light);">No activity yet.</div>'; return; }
 
             txList.innerHTML = transactions.map(t => {
                 const cat = categories.find(c => c.id === t.catId);
@@ -508,8 +440,7 @@
                             <div class="tx-amt ${isInc ? 'income' : ''}">${isInc ? '+' : '-'}$${t.amt.toFixed(2)}</div>
                             <button class="del-btn" onclick="delTx('${t.id}')">&times;</button>
                         </div>
-                    </div>
-                `;
+                    </div>`;
             }).join('');
         }
 
