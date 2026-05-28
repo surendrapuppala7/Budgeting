@@ -77,12 +77,12 @@
 
             <div class="input-line">
                 <label for="amtInput">Amount</label>
-                <input type="number" id="amtInput" placeholder="0.00" step="0.01" inputmode="decimal" min="0.01" max="1000000">
+                <input type="text" id="amtInput" placeholder="$0.00" inputmode="decimal" maxlength="14" autocomplete="off" data-validate="money">
             </div>
 
             <div class="input-line">
                 <label for="noteInput">Note</label>
-                <input type="text" id="noteInput" placeholder="What was it for?" maxlength="120" autocomplete="off">
+                <input type="text" id="noteInput" placeholder="What was it for?" maxlength="120" autocomplete="off" data-validate="text">
             </div>
 
             <div id="catRow" class="input-line">
@@ -144,18 +144,18 @@
 
                 <div id="modalNameRow" class="input-line">
                     <label id="modalNameLabel" for="newCatName">Name</label>
-                    <input type="text" id="newCatName" placeholder="e.g., Groceries" maxlength="80" autocomplete="off">
+                    <input type="text" id="newCatName" placeholder="e.g., Groceries" maxlength="254" autocomplete="off" data-validate="text">
                 </div>
 
                 <div id="modalBudgetRow" class="input-line">
                     <label for="newCatBudget">Limit</label>
-                    <input type="number" id="newCatBudget" placeholder="0.00" inputmode="decimal" min="0" max="1000000">
+                    <input type="text" id="newCatBudget" placeholder="$0.00" inputmode="decimal" maxlength="14" autocomplete="off" data-validate="money">
                 </div>
 
                 <div id="modalRecurringInputs" class="hidden">
                     <div class="input-line">
                         <label for="recAmt">Amount</label>
-                        <input type="number" id="recAmt" placeholder="0.00" inputmode="decimal" min="0.01" max="1000000">
+                        <input type="text" id="recAmt" placeholder="$0.00" inputmode="decimal" maxlength="14" autocomplete="off" data-validate="money">
                     </div>
 
                     <div class="input-line">
@@ -179,7 +179,7 @@
 
                     <div class="input-line">
                         <label for="recInterval">Every X Days</label>
-                        <input type="number" id="recInterval" value="14" inputmode="numeric" min="1" max="365">
+                        <input type="text" id="recInterval" value="14" inputmode="numeric" maxlength="3" autocomplete="off" data-validate="integer">
                     </div>
                 </div>
 
