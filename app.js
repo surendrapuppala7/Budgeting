@@ -74,6 +74,25 @@ function normalizeEmail(email) {
     return String(email || '').trim().toLowerCase();
 }
 
+/*
+    SECURITY MODEL
+
+    Money fields:
+    - Allow only digits, one optional leading $, and one optional decimal point.
+    - Saved to Firestore as a number only.
+
+    Text fields:
+    - Allow only letters, numbers, spaces, and approved punctuation.
+    - Reject script-useful characters such as:
+      < > " ' ` = / \ ; : { } [ ] |
+
+    Email fields:
+    - Allow only lowercase email characters.
+*/
+
+const TEXT_PATTERN = /^[A-Za-z0-9 .,!?\-_()$#@&+%]*$/;
+const ILLEGAL_TEXT_PATTERN = /[^A-Za-z0-9 .,!?\-_()$#@&+%]/;
+
 function cleanControlChars(value, max = 120) {
     return String(value || '')
         .replace(/[\u0000-\u001F\u007F]/g, '')
@@ -81,19 +100,37 @@ function cleanControlChars(value, max = 120) {
         .slice(0, max);
 }
 
+function hasIllegalTextChars(value) {
+    return ILLEGAL_TEXT_PATTERN.test(String(value || ''));
+}
+
 function filterPlainText(value, max = 120) {
     return cleanControlChars(value, max)
-        .replace(/[^A-Za-z0-9 .,!?\-_()$#@&+%]/g, '')
+        .replace(ILLEGAL_TEXT_PATTERN, '')
         .slice(0, max);
 }
 
 function isSafePlainText(value, max = 120) {
-    const text = cleanControlChars(value, max);
-    return Boolean(text) && /^[A-Za-z0-9 .,!?\-_()$#@&+%]*$/.test(text);
+    const raw = String(value || '');
+
+    if (hasIllegalTextChars(raw)) {
+        return false;
+    }
+
+    const text = cleanControlChars(raw, max);
+
+    return Boolean(text) && TEXT_PATTERN.test(text);
 }
 
 function getSafePlainText(value, max = 120) {
-    const text = cleanControlChars(value, max);
+    const raw = String(value || '');
+
+    if (hasIllegalTextChars(raw)) {
+        return null;
+    }
+
+    const text = cleanControlChars(raw, max);
+
     return isSafePlainText(text, max) ? text : null;
 }
 
@@ -596,8 +633,11 @@ async function saveTx() {
         return;
     }
 
-    const amt = validAmount($('amtInput').value);
-    const note = getSafePlainText($('noteInput').value, 120);
+    const rawAmount = $('amtInput').value;
+    const rawNote = $('noteInput').value;
+
+    const amt = validAmount(rawAmount);
+    const note = getSafePlainText(rawNote, 120);
 
     if (!amt) {
         alert('Amount can only use digits, one optional $, and one optional decimal point.');
@@ -605,7 +645,7 @@ async function saveTx() {
     }
 
     if (!note) {
-        alert('Note can only use letters, numbers, spaces, and approved punctuation.');
+        alert('Note rejected. Use only letters, numbers, spaces, and approved punctuation.');
         return;
     }
 
@@ -634,11 +674,22 @@ async function saveTx() {
         }
     }
 
-    await addDoc(collection(db, `households/${activeHouseholdId}/transactions`), txPayload);
+    $('saveTxBtn').disabled = true;
+    $('saveTxBtn').textContent = 'Saving...';
 
-    $('amtInput').value = '';
-    $('noteInput').value = '';
-    document.activeElement.blur();
+    try {
+        await addDoc(collection(db, `households/${activeHouseholdId}/transactions`), txPayload);
+
+        $('amtInput').value = '';
+        $('noteInput').value = '';
+        document.activeElement.blur();
+    } catch (error) {
+        console.error(error);
+        alert('Transaction rejected by security rules.');
+    } finally {
+        $('saveTxBtn').disabled = false;
+        $('saveTxBtn').textContent = 'Log Transaction';
+    }
 }
 
 async function delTx(id) {
@@ -739,7 +790,7 @@ async function saveSetupItem() {
         alert(
             modalTab === 'household'
                 ? 'Enter a valid email address.'
-                : 'Name can only use letters, numbers, spaces, and approved punctuation.'
+                : 'Name rejected. Use only letters, numbers, spaces, and approved punctuation.'
         );
         return;
     }
@@ -894,13 +945,18 @@ async function addHouseholdMember(rawEmail) {
         return;
     }
 
-    await setDoc(doc(db, `households/${activeHouseholdId}`), {
-        allowedEmails,
-        updatedAt: Date.now()
-    }, { merge: true });
+    try {
+        await setDoc(doc(db, `households/${activeHouseholdId}`), {
+            allowedEmails,
+            updatedAt: Date.now()
+        }, { merge: true });
 
-    $('newCatName').value = '';
-    alert(`${email} can now access this household ledger.`);
+        $('newCatName').value = '';
+        alert(`${email} can now access this household ledger.`);
+    } catch (error) {
+        console.error(error);
+        alert('Household update rejected by security rules.');
+    }
 }
 
 async function removeHouseholdMember(email) {
