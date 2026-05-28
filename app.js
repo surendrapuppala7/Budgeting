@@ -78,16 +78,19 @@ function normalizeEmail(email) {
     SECURITY MODEL
 
     Money fields:
+    - Live-cleaned.
     - Allow only digits, one optional leading $, and one optional decimal point.
     - Saved to Firestore as a number only.
 
     Text fields:
-    - Allow only letters, numbers, spaces, and approved punctuation.
-    - Reject script-useful characters such as:
+    - NOT live-cleaned.
+    - Preserves what user typed.
+    - Rejected on Save if illegal characters exist.
+    - Blocks script-useful characters such as:
       < > " ' ` = / \ ; : { } [ ] |
 
     Email fields:
-    - Allow only lowercase email characters.
+    - Live-cleaned to lowercase email characters only.
 */
 
 const TEXT_PATTERN = /^[A-Za-z0-9 .,!?\-_()$#@&+%]*$/;
@@ -104,7 +107,7 @@ function hasIllegalTextChars(value) {
     return ILLEGAL_TEXT_PATTERN.test(String(value || ''));
 }
 
-function filterPlainText(value, max = 120) {
+function filterPlainTextForDisplay(value, max = 120) {
     return cleanControlChars(value, max)
         .replace(ILLEGAL_TEXT_PATTERN, '')
         .slice(0, max);
@@ -1326,9 +1329,13 @@ function applyInputFilters() {
                 input.value = filterIntegerInput(input.value);
             } else if (kind === 'email') {
                 input.value = filterEmailInput(input.value);
-            } else if (kind === 'text') {
-                input.value = filterPlainText(input.value, Number(input.maxLength) || 120);
             }
+
+            // Important:
+            // Do NOT auto-clean text fields.
+            // Notes, category names, wallet names, and recurring memos
+            // preserve what the user typed, then get rejected on Save
+            // if illegal characters exist.
         });
 
         input.addEventListener('paste', () => {
