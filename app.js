@@ -74,31 +74,121 @@ function normalizeEmail(email) {
     return String(email || '').trim().toLowerCase();
 }
 
-function safeText(value, max = 120) {
-    return String(value || '').replace(/[\u0000-\u001F\u007F]/g, '').trim().slice(0, max);
+function cleanControlChars(value, max = 120) {
+    return String(value || '')
+        .replace(/[\u0000-\u001F\u007F]/g, '')
+        .trim()
+        .slice(0, max);
 }
 
-function validateEmail(email) {
-    const normalized = normalizeEmail(email);
-    return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(normalized) ? normalized : '';
+function filterPlainText(value, max = 120) {
+    return cleanControlChars(value, max)
+        .replace(/[^A-Za-z0-9 .,!?\-_()$#@&+%]/g, '')
+        .slice(0, max);
+}
+
+function isSafePlainText(value, max = 120) {
+    const text = cleanControlChars(value, max);
+    return Boolean(text) && /^[A-Za-z0-9 .,!?\-_()$#@&+%]*$/.test(text);
+}
+
+function getSafePlainText(value, max = 120) {
+    const text = cleanControlChars(value, max);
+    return isSafePlainText(text, max) ? text : null;
+}
+
+function filterMoneyInput(value) {
+    let raw = String(value || '').replace(/[^0-9.$]/g, '');
+
+    const hasDollar = raw.includes('$');
+    raw = raw.replace(/\$/g, '');
+    if (hasDollar) raw = `$${raw}`;
+
+    const prefix = raw.startsWith('$') ? '$' : '';
+    let body = raw.replace(/^\$/, '');
+
+    const firstDot = body.indexOf('.');
+    if (firstDot !== -1) {
+        body = body.slice(0, firstDot + 1) + body.slice(firstDot + 1).replace(/\./g, '');
+    }
+
+    const parts = body.split('.');
+    if (parts.length === 2) {
+        parts[1] = parts[1].slice(0, 2);
+        body = `${parts[0]}.${parts[1]}`;
+    }
+
+    body = body.slice(0, 12);
+    return `${prefix}${body}`;
 }
 
 function validAmount(value, max = 1000000) {
-    const num = Number(value);
-    if (!Number.isFinite(num) || num <= 0 || num > max) return null;
+    const raw = String(value || '').trim();
+
+    if (!/^\$?(?:0|[1-9]\d*)(?:\.\d{1,2})?$/.test(raw)) {
+        return null;
+    }
+
+    const num = Number(raw.replace('$', ''));
+
+    if (!Number.isFinite(num) || num <= 0 || num > max) {
+        return null;
+    }
+
     return Math.round(num * 100) / 100;
 }
 
 function validNonNegative(value, max = 1000000) {
-    const num = Number(value);
-    if (!Number.isFinite(num) || num < 0 || num > max) return null;
+    const raw = String(value ?? '').trim();
+
+    if (!/^\$?(?:0|[1-9]\d*)(?:\.\d{1,2})?$/.test(raw)) {
+        return null;
+    }
+
+    const num = Number(raw.replace('$', ''));
+
+    if (!Number.isFinite(num) || num < 0 || num > max) {
+        return null;
+    }
+
     return Math.round(num * 100) / 100;
 }
 
+function filterIntegerInput(value, maxLength = 3) {
+    return String(value || '').replace(/[^0-9]/g, '').slice(0, maxLength);
+}
+
 function validInterval(value) {
-    const num = Number.parseInt(value, 10);
-    if (!Number.isInteger(num) || num < 1 || num > 365) return null;
+    const raw = String(value || '').trim();
+
+    if (!/^[1-9]\d*$/.test(raw)) {
+        return null;
+    }
+
+    const num = Number.parseInt(raw, 10);
+
+    if (!Number.isInteger(num) || num < 1 || num > 365) {
+        return null;
+    }
+
     return num;
+}
+
+function filterEmailInput(value) {
+    return String(value || '')
+        .toLowerCase()
+        .replace(/[^a-z0-9._%+\-@]/g, '')
+        .replace(/@+/g, '@')
+        .slice(0, 254);
+}
+
+function validateEmail(email) {
+    const normalized = filterEmailInput(email);
+    return /^[a-z0-9._%+\-]+@[a-z0-9.\-]+\.[a-z]{2,}$/.test(normalized) ? normalized : '';
+}
+
+function safeText(value, max = 120) {
+    return cleanControlChars(value, max);
 }
 
 function safeColor(color) {
@@ -140,7 +230,7 @@ function defaultSettings() {
             { id: 'i_salary', name: 'Primary Salary', type: 'income', color: '#2B4C3B' },
             { id: 'e_mortgage', name: 'Mortgage & Utilities', type: 'expense', budget: 2500, color: '#111111' },
             { id: 'e_auto', name: 'EV Charging & Auto', type: 'expense', budget: 150, color: '#A63D2F' },
-            { id: 'e_pet', name: "Piper's Care", type: 'expense', budget: 150, color: '#D99A5A' },
+            { id: 'e_pet', name: 'Pipers Care', type: 'expense', budget: 150, color: '#D99A5A' },
             { id: 'e_tech', name: 'Home Lab & Tech', type: 'expense', budget: 150, color: '#7A8B76' }
         ],
         wallets: [{ id: 'w_chk', name: 'Checking Account' }],
@@ -224,6 +314,48 @@ async function resolveHousehold(user) {
     return newHouseholdId;
 }
 
+function sanitizeCategoryArray(rawCategories) {
+    if (!Array.isArray(rawCategories)) return defaultSettings().categories;
+
+    return rawCategories.slice(0, 100).map((cat, index) => {
+        const safeType = allowedTypes.has(cat.type) && cat.type !== 'savings' ? cat.type : 'expense';
+        const safeName = getSafePlainText(cat.name, 80) || 'Category';
+
+        return {
+            id: safeText(cat.id || `${safeType}_${Date.now()}_${index}`, 80),
+            name: safeName,
+            type: safeType,
+            budget: validNonNegative(cat.budget ?? 0) ?? 0,
+            color: safeColor(cat.color)
+        };
+    });
+}
+
+function sanitizeWalletArray(rawWallets) {
+    if (!Array.isArray(rawWallets)) return defaultSettings().wallets;
+
+    return rawWallets.slice(0, 50).map((wallet, index) => ({
+        id: safeText(wallet.id || `w_${Date.now()}_${index}`, 80),
+        name: getSafePlainText(wallet.name, 80) || 'Wallet'
+    }));
+}
+
+function sanitizeRecurringArray(rawRecurring) {
+    if (!Array.isArray(rawRecurring)) return [];
+
+    return rawRecurring.slice(0, 50).map((rule, index) => ({
+        id: safeText(rule.id || `r_${Date.now()}_${index}`, 80),
+        type: allowedTypes.has(rule.type) ? rule.type : 'expense',
+        amt: validAmount(rule.amt) || 0.01,
+        note: getSafePlainText(rule.note, 80) || 'Recurring',
+        catId: safeText(rule.catId || '', 80),
+        goalId: safeText(rule.goalId || '', 80),
+        walletId: safeText(rule.walletId || 'Auto', 80),
+        intervalDays: validInterval(rule.intervalDays) || 30,
+        lastTriggered: Number(rule.lastTriggered || Date.now())
+    }));
+}
+
 async function migrateLegacyUserData(uid, householdId) {
     const settingsRef = doc(db, `households/${householdId}/settings/data`);
     const newSettingsSnap = await getDoc(settingsRef);
@@ -233,14 +365,19 @@ async function migrateLegacyUserData(uid, householdId) {
 
         if (legacySettingsSnap.exists()) {
             const legacy = legacySettingsSnap.data();
+
             await setDoc(settingsRef, {
-                categories: Array.isArray(legacy.categories) ? legacy.categories : defaultSettings().categories,
-                wallets: Array.isArray(legacy.wallets) ? legacy.wallets : defaultSettings().wallets,
-                recurring: Array.isArray(legacy.recurring) ? legacy.recurring : [],
-                lastProcessed: Number(legacy.lastProcessed || Date.now())
+                categories: sanitizeCategoryArray(legacy.categories),
+                wallets: sanitizeWalletArray(legacy.wallets),
+                recurring: sanitizeRecurringArray(legacy.recurring),
+                lastProcessed: Number(legacy.lastProcessed || Date.now()),
+                ...buildMetadata()
             }, { merge: true });
         } else {
-            await setDoc(settingsRef, defaultSettings(), { merge: true });
+            await setDoc(settingsRef, {
+                ...defaultSettings(),
+                ...buildMetadata()
+            }, { merge: true });
         }
     }
 
@@ -253,10 +390,13 @@ async function migrateLegacyUserData(uid, householdId) {
             for (const oldDoc of legacyTxsSnap.docs) {
                 const old = oldDoc.data();
                 const oldType = allowedTypes.has(old.type) ? old.type : 'expense';
+                const oldAmt = validAmount(old.amt) || 0.01;
+                const oldNote = getSafePlainText(old.note || 'Migrated transaction', 120) || 'Migrated transaction';
+
                 const payload = {
                     type: oldType,
-                    amt: validAmount(old.amt) || 0.01,
-                    note: safeText(old.note || 'Migrated transaction', 120),
+                    amt: oldAmt,
+                    note: oldNote,
                     date: safeText(old.date || 'Migrated', 32),
                     timestamp: Number(old.timestamp || Date.now()),
                     walletId: safeText(old.walletId || 'Migrated', 80),
@@ -282,7 +422,7 @@ async function ensureDefaultGoal(householdId) {
 
     if (goalsSnap.empty) {
         await addDoc(collection(db, `households/${householdId}/goals`), {
-            name: 'Kakinada, India Trip',
+            name: 'Kakinada India Trip',
             amount: 5000,
             monthly: 300,
             ...buildMetadata()
@@ -301,9 +441,9 @@ function initCloudSync(householdId) {
         if (docSnap.exists()) {
             const data = docSnap.data();
 
-            categories = Array.isArray(data.categories) ? data.categories : [];
-            wallets = Array.isArray(data.wallets) ? data.wallets : [];
-            recurring = Array.isArray(data.recurring) ? data.recurring : [];
+            categories = sanitizeCategoryArray(data.categories);
+            wallets = sanitizeWalletArray(data.wallets);
+            recurring = sanitizeRecurringArray(data.recurring);
 
             const lastProcessed = Number(data.lastProcessed || 0);
             const now = Date.now();
@@ -311,18 +451,16 @@ function initCloudSync(householdId) {
             if (now - lastProcessed > 43200000) {
                 await processRecurringCloudItems(householdId, recurring);
                 await setDoc(doc(db, `households/${householdId}/settings/data`), {
+                    categories,
+                    wallets,
+                    recurring,
                     lastProcessed: now,
                     ...updateMetadata()
                 }, { merge: true });
             }
         } else {
-            const defaults = defaultSettings();
-            categories = defaults.categories;
-            wallets = defaults.wallets;
-            recurring = defaults.recurring;
-
             await setDoc(doc(db, `households/${householdId}/settings/data`), {
-                ...defaults,
+                ...defaultSettings(),
                 ...buildMetadata()
             }, { merge: true });
         }
@@ -336,7 +474,14 @@ function initCloudSync(householdId) {
         query(collection(db, `households/${householdId}/goals`), orderBy('createdAt', 'asc')),
         (snapshot) => {
             goals = [];
-            snapshot.forEach((d) => goals.push({ id: d.id, ...d.data() }));
+            snapshot.forEach((d) => {
+                const g = d.data();
+                goals.push({
+                    id: d.id,
+                    ...g,
+                    name: getSafePlainText(g.name, 60) || 'Goal'
+                });
+            });
             refreshDropdowns();
             renderUI();
         }
@@ -369,12 +514,14 @@ async function processRecurringCloudItems(householdId, rules) {
         if (now - lastTriggered >= msPerInterval) {
             const ruleType = allowedTypes.has(rule.type) ? rule.type : 'expense';
             const amt = validAmount(rule.amt);
-            if (!amt) continue;
+            const safeNote = getSafePlainText(rule.note || 'Recurring', 80);
+
+            if (!amt || !safeNote) continue;
 
             const payload = {
                 type: ruleType,
                 amt,
-                note: safeText(`[Auto] ${rule.note || 'Recurring'}`, 120),
+                note: `Auto ${safeNote}`,
                 walletId: safeText(rule.walletId || 'Auto', 80),
                 date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
                 timestamp: now,
@@ -398,7 +545,9 @@ async function processRecurringCloudItems(householdId, rules) {
 
     if (updatesNeeded) {
         await setDoc(doc(db, `households/${householdId}/settings/data`), {
-            recurring: rules,
+            categories,
+            wallets,
+            recurring,
             ...updateMetadata()
         }, { merge: true });
     }
@@ -411,6 +560,7 @@ function saveSettingsToCloud() {
         categories,
         wallets,
         recurring,
+        lastProcessed: Date.now(),
         ...updateMetadata()
     }, { merge: true });
 }
@@ -447,10 +597,15 @@ async function saveTx() {
     }
 
     const amt = validAmount($('amtInput').value);
-    const note = safeText($('noteInput').value, 120);
+    const note = getSafePlainText($('noteInput').value, 120);
 
-    if (!amt || !note) {
-        alert('Amount and note required.');
+    if (!amt) {
+        alert('Amount can only use digits, one optional $, and one optional decimal point.');
+        return;
+    }
+
+    if (!note) {
+        alert('Note can only use letters, numbers, spaces, and approved punctuation.');
         return;
     }
 
@@ -552,6 +707,9 @@ function setModalTab(newTab) {
 
     $('modalNameLabel').textContent = labelMap[newTab];
     $('newCatName').placeholder = placeholderMap[newTab];
+
+    $('newCatName').dataset.validate = newTab === 'household' ? 'email' : 'text';
+
     $('modalListTitle').textContent = titleMap[newTab];
 
     cancelEdit(false);
@@ -573,10 +731,16 @@ function cancelEdit(render = true) {
 }
 
 async function saveSetupItem() {
-    const name = safeText($('newCatName').value, modalTab === 'household' ? 254 : 80);
+    const name = modalTab === 'household'
+        ? validateEmail($('newCatName').value)
+        : getSafePlainText($('newCatName').value, 80);
 
     if (!name) {
-        alert('Name required.');
+        alert(
+            modalTab === 'household'
+                ? 'Enter a valid email address.'
+                : 'Name can only use letters, numbers, spaces, and approved punctuation.'
+        );
         return;
     }
 
@@ -585,7 +749,13 @@ async function saveSetupItem() {
         return;
     }
 
-    const budget = validNonNegative($('newCatBudget').value || 0);
+    const budgetRaw = $('newCatBudget').value || '$0';
+    const budget = validNonNegative(budgetRaw);
+
+    if (budget === null) {
+        alert('Budget can only use digits, one optional $, and one optional decimal point.');
+        return;
+    }
 
     if (modalTab === 'recurring') {
         const amt = validAmount($('recAmt').value);
@@ -593,7 +763,7 @@ async function saveSetupItem() {
         const intervalDays = validInterval($('recInterval').value);
 
         if (!amt) {
-            alert('Amount required.');
+            alert('Amount can only use digits, one optional $, and one optional decimal point.');
             return;
         }
 
@@ -603,7 +773,7 @@ async function saveSetupItem() {
         }
 
         if (!intervalDays) {
-            alert('Interval must be between 1 and 365 days.');
+            alert('Interval must be a whole number from 1 to 365.');
             return;
         }
 
@@ -619,6 +789,7 @@ async function saveSetupItem() {
         if (rType === 'savings') {
             rule.goalId = safeText($('recGoal').value, 80);
             rule.walletId = safeText($('walletInput').value || 'Auto', 80);
+
             if (!rule.goalId) {
                 alert('Create a savings goal first.');
                 return;
@@ -626,6 +797,7 @@ async function saveSetupItem() {
         } else {
             rule.catId = safeText($('recCat').value, 80);
             rule.walletId = 'Auto';
+
             if (!rule.catId) {
                 alert('Create a category first.');
                 return;
@@ -1087,6 +1259,28 @@ function emptyRow(message) {
     return row;
 }
 
+function applyInputFilters() {
+    document.querySelectorAll('[data-validate]').forEach(input => {
+        input.addEventListener('input', () => {
+            const kind = input.dataset.validate;
+
+            if (kind === 'money') {
+                input.value = filterMoneyInput(input.value);
+            } else if (kind === 'integer') {
+                input.value = filterIntegerInput(input.value);
+            } else if (kind === 'email') {
+                input.value = filterEmailInput(input.value);
+            } else if (kind === 'text') {
+                input.value = filterPlainText(input.value, Number(input.maxLength) || 120);
+            }
+        });
+
+        input.addEventListener('paste', () => {
+            setTimeout(() => input.dispatchEvent(new Event('input')), 0);
+        });
+    });
+}
+
 function bindEvents() {
     $('loginBtn').addEventListener('click', login);
     $('logoutBtn').addEventListener('click', logout);
@@ -1105,6 +1299,8 @@ function bindEvents() {
     document.querySelectorAll('[data-tab]').forEach(btn => {
         btn.addEventListener('click', () => setModalTab(btn.dataset.tab));
     });
+
+    applyInputFilters();
 }
 
 bindEvents();
