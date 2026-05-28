@@ -53,13 +53,67 @@ function normalizeEmail(email) {
     return String(email || '').trim().toLowerCase();
 }
 
-function safeText(value, max = 120) {
-    return String(value || '').replace(/[\u0000-\u001F\u007F]/g, '').trim().slice(0, max);
+function cleanControlChars(value, max = 120) {
+    return String(value || '')
+        .replace(/[\u0000-\u001F\u007F]/g, '')
+        .trim()
+        .slice(0, max);
+}
+
+function filterPlainText(value, max = 120) {
+    return cleanControlChars(value, max)
+        .replace(/[^A-Za-z0-9 .,!?\-_()$#@&+%]/g, '')
+        .slice(0, max);
+}
+
+function isSafePlainText(value, max = 120) {
+    const text = cleanControlChars(value, max);
+    return Boolean(text) && /^[A-Za-z0-9 .,!?\-_()$#@&+%]*$/.test(text);
+}
+
+function getSafePlainText(value, max = 120) {
+    const text = cleanControlChars(value, max);
+    return isSafePlainText(text, max) ? text : null;
+}
+
+function filterMoneyInput(value) {
+    let raw = String(value || '').replace(/[^0-9.$]/g, '');
+
+    const hasDollar = raw.includes('$');
+    raw = raw.replace(/\$/g, '');
+    if (hasDollar) raw = `$${raw}`;
+
+    const prefix = raw.startsWith('$') ? '$' : '';
+    let body = raw.replace(/^\$/, '');
+
+    const firstDot = body.indexOf('.');
+    if (firstDot !== -1) {
+        body = body.slice(0, firstDot + 1) + body.slice(firstDot + 1).replace(/\./g, '');
+    }
+
+    const parts = body.split('.');
+    if (parts.length === 2) {
+        parts[1] = parts[1].slice(0, 2);
+        body = `${parts[0]}.${parts[1]}`;
+    }
+
+    body = body.slice(0, 12);
+    return `${prefix}${body}`;
 }
 
 function validAmount(value, max = 1000000) {
-    const num = Number(value);
-    if (!Number.isFinite(num) || num <= 0 || num > max) return null;
+    const raw = String(value || '').trim();
+
+    if (!/^\$?(?:0|[1-9]\d*)(?:\.\d{1,2})?$/.test(raw)) {
+        return null;
+    }
+
+    const num = Number(raw.replace('$', ''));
+
+    if (!Number.isFinite(num) || num <= 0 || num > max) {
+        return null;
+    }
+
     return Math.round(num);
 }
 
@@ -124,7 +178,14 @@ function initGoalSync(householdId) {
         query(collection(db, `households/${householdId}/goals`), orderBy('createdAt', 'asc')),
         (snapshot) => {
             goals = [];
-            snapshot.forEach((d) => goals.push({ id: d.id, ...d.data() }));
+            snapshot.forEach((d) => {
+                const g = d.data();
+                goals.push({
+                    id: d.id,
+                    ...g,
+                    name: getSafePlainText(g.name, 60) || 'Goal'
+                });
+            });
             renderGoals();
         }
     );
@@ -275,7 +336,7 @@ function openModal(id = null) {
         const goal = goals.find(x => x.id === id);
         if (!goal) return;
 
-        $('inputName').value = safeText(goal.name, 60);
+        $('inputName').value = filterPlainText(goal.name, 60);
         $('inputAmt').value = Number(goal.amount || '');
         $('inputMonthly').value = Number(goal.monthly || '');
         $('modalTitle').textContent = 'Edit Target';
@@ -295,13 +356,13 @@ function closeModal() {
 }
 
 async function saveGoal() {
-    const name = safeText($('inputName').value, 60);
+    const name = getSafePlainText($('inputName').value, 60);
     const amount = validAmount($('inputAmt').value);
-    const monthlyInput = validAmount($('inputMonthly').value || 0);
+    const monthlyInput = validAmount($('inputMonthly').value || '');
     const monthly = monthlyInput || Math.min(Math.ceil(amount / 10), amount);
 
     if (!name || !amount) {
-        alert('Enter a goal name and target amount.');
+        alert('Goal name must be approved text, and amount must be valid money format.');
         return;
     }
 
@@ -337,10 +398,29 @@ async function deleteGoal(id) {
     }
 }
 
+function applyInputFilters() {
+    document.querySelectorAll('[data-validate]').forEach(input => {
+        input.addEventListener('input', () => {
+            const kind = input.dataset.validate;
+
+            if (kind === 'money') {
+                input.value = filterMoneyInput(input.value);
+            } else if (kind === 'text') {
+                input.value = filterPlainText(input.value, Number(input.maxLength) || 120);
+            }
+        });
+
+        input.addEventListener('paste', () => {
+            setTimeout(() => input.dispatchEvent(new Event('input')), 0);
+        });
+    });
+}
+
 function bindEvents() {
     $('createGoalBtn').addEventListener('click', () => openModal());
     $('closeGoalModalBtn').addEventListener('click', closeModal);
     $('saveGoalBtn').addEventListener('click', saveGoal);
+    applyInputFilters();
 }
 
 bindEvents();
