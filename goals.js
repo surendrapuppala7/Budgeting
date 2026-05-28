@@ -38,6 +38,9 @@ let editingGoalId = null;
 
 const $ = (id) => document.getElementById(id);
 
+const TEXT_PATTERN = /^[A-Za-z0-9 .,!?\-_()$#@&+%]*$/;
+const ILLEGAL_TEXT_PATTERN = /[^A-Za-z0-9 .,!?\-_()$#@&+%]/;
+
 function createEl(tag, className, text) {
     const node = document.createElement(tag);
     if (className) node.className = className;
@@ -60,19 +63,37 @@ function cleanControlChars(value, max = 120) {
         .slice(0, max);
 }
 
+function hasIllegalTextChars(value) {
+    return ILLEGAL_TEXT_PATTERN.test(String(value || ''));
+}
+
 function filterPlainText(value, max = 120) {
     return cleanControlChars(value, max)
-        .replace(/[^A-Za-z0-9 .,!?\-_()$#@&+%]/g, '')
+        .replace(ILLEGAL_TEXT_PATTERN, '')
         .slice(0, max);
 }
 
 function isSafePlainText(value, max = 120) {
-    const text = cleanControlChars(value, max);
-    return Boolean(text) && /^[A-Za-z0-9 .,!?\-_()$#@&+%]*$/.test(text);
+    const raw = String(value || '');
+
+    if (hasIllegalTextChars(raw)) {
+        return false;
+    }
+
+    const text = cleanControlChars(raw, max);
+
+    return Boolean(text) && TEXT_PATTERN.test(text);
 }
 
 function getSafePlainText(value, max = 120) {
-    const text = cleanControlChars(value, max);
+    const raw = String(value || '');
+
+    if (hasIllegalTextChars(raw)) {
+        return null;
+    }
+
+    const text = cleanControlChars(raw, max);
+
     return isSafePlainText(text, max) ? text : null;
 }
 
@@ -356,33 +377,44 @@ function closeModal() {
 }
 
 async function saveGoal() {
-    const name = getSafePlainText($('inputName').value, 60);
+    const rawName = $('inputName').value;
+    const name = getSafePlainText(rawName, 60);
     const amount = validAmount($('inputAmt').value);
     const monthlyInput = validAmount($('inputMonthly').value || '');
     const monthly = monthlyInput || Math.min(Math.ceil(amount / 10), amount);
 
-    if (!name || !amount) {
-        alert('Goal name must be approved text, and amount must be valid money format.');
+    if (!name) {
+        alert('Goal name rejected. Use only letters, numbers, spaces, and approved punctuation.');
         return;
     }
 
-    if (editingGoalId) {
-        await setDoc(doc(db, `households/${activeHouseholdId}/goals/${editingGoalId}`), {
-            name,
-            amount,
-            monthly: Math.min(monthly, amount),
-            ...updateMetadata()
-        }, { merge: true });
-    } else {
-        await addDoc(collection(db, `households/${activeHouseholdId}/goals`), {
-            name,
-            amount,
-            monthly: Math.min(monthly, amount),
-            ...buildMetadata()
-        });
+    if (!amount) {
+        alert('Goal amount must be valid money format.');
+        return;
     }
 
-    closeModal();
+    try {
+        if (editingGoalId) {
+            await setDoc(doc(db, `households/${activeHouseholdId}/goals/${editingGoalId}`), {
+                name,
+                amount,
+                monthly: Math.min(monthly, amount),
+                ...updateMetadata()
+            }, { merge: true });
+        } else {
+            await addDoc(collection(db, `households/${activeHouseholdId}/goals`), {
+                name,
+                amount,
+                monthly: Math.min(monthly, amount),
+                ...buildMetadata()
+            });
+        }
+
+        closeModal();
+    } catch (error) {
+        console.error(error);
+        alert('Goal rejected by security rules.');
+    }
 }
 
 async function deleteGoal(id) {
