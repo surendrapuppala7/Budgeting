@@ -5,7 +5,8 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app-check.js";
 import {
     getAuth,
-    signInWithPopup,
+    signInWithRedirect,
+    getRedirectResult,
     GoogleAuthProvider,
     onAuthStateChanged,
     signOut
