@@ -563,6 +563,7 @@ function initCloudSync(householdId) {
         household = snap.exists() ? { id: snap.id, ...snap.data() } : null;
         renderHouseholdInfo();
         renderModalList();
+        scheduleUsageHeartbeat();
     });
 
     unsubscribeSettings = onSnapshot(doc(db, `households/${householdId}/settings/data`), async (docSnap) => {
