@@ -1863,6 +1863,7 @@ onAuthStateChanged(auth, async (user) => {
             activeHouseholdId = await resolveHousehold(user);
             await ensureDefaultGoal(activeHouseholdId);
             initCloudSync(activeHouseholdId);
+            scheduleUsageHeartbeat(true);
         } catch (error) {
             console.error(error);
             alert(`Ledger failed to load: ${error.message}`);
