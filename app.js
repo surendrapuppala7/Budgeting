@@ -46,7 +46,6 @@ initializeAppCheck(app, {
 const auth = getAuth(app);
 const db = getFirestore(app);
 const provider = new GoogleAuthProvider();
-const APP_VERSION = 'redirect-login-5';
 
 const palette = ['#111111', '#A63D2F', '#D99A5A', '#C2847A', '#7A8B76', '#4A5D4E', '#2B4C3B', '#8E8E93'];
 const allowedTypes = new Set(['income', 'expense', 'savings']);
@@ -311,62 +310,6 @@ function updateMetadata() {
     };
 }
 
-let heartbeatTimer = null;
-let heartbeatLastWrite = 0;
-
-function safeCount(value, max) {
-    const num = Number(value || 0);
-
-    if (!Number.isFinite(num)) {
-        return 0;
-    }
-
-    return Math.max(0, Math.min(Math.trunc(num), max));
-}
-
-async function writeUsageHeartbeat(force = false) {
-    if (!currentUser) return;
-
-    const now = Date.now();
-
-    if (!force && now - heartbeatLastWrite < 60000) {
-        return;
-    }
-
-    heartbeatLastWrite = now;
-
-    const memberCount = Array.isArray(household?.allowedEmails)
-        ? household.allowedEmails.length
-        : 1;
-
-    const payload = {
-        lastActiveAt: now,
-        updatedAt: now,
-        appVersion: APP_VERSION,
-        transactionCount: safeCount(transactions.length, 50000),
-        goalCount: safeCount(goals.length, 1000),
-        categoryCount: safeCount(categories.length, 500),
-        isHouseholdOwner: Boolean(household && household.ownerUid === currentUser.uid),
-        householdMemberCount: safeCount(memberCount, 20)
-    };
-
-    try {
-        await setDoc(doc(db, `usageHeartbeats/${currentUser.uid}`), payload, { merge: true });
-    } catch (error) {
-        console.warn('Usage heartbeat failed:', error);
-    }
-}
-
-function scheduleUsageHeartbeat(force = false) {
-    if (heartbeatTimer) {
-        clearTimeout(heartbeatTimer);
-    }
-
-    heartbeatTimer = setTimeout(() => {
-        writeUsageHeartbeat(force);
-    }, force ? 100 : 1500);
-}
-
 async function login() {
     const btn = $('loginBtn');
 
@@ -564,7 +507,6 @@ function initCloudSync(householdId) {
         household = snap.exists() ? { id: snap.id, ...snap.data() } : null;
         renderHouseholdInfo();
         renderModalList();
-        scheduleUsageHeartbeat();
     });
 
     unsubscribeSettings = onSnapshot(doc(db, `households/${householdId}/settings/data`), async (docSnap) => {
@@ -598,7 +540,6 @@ function initCloudSync(householdId) {
         refreshDropdowns();
         renderUI();
         renderModalList();
-        scheduleUsageHeartbeat();
     });
 
     unsubscribeGoals = onSnapshot(
@@ -615,7 +556,6 @@ function initCloudSync(householdId) {
             });
             refreshDropdowns();
             renderUI();
-            scheduleUsageHeartbeat();
         }
     );
 
@@ -625,7 +565,6 @@ function initCloudSync(householdId) {
             transactions = [];
             snapshot.forEach((d) => transactions.push({ id: d.id, ...d.data() }));
             renderUI();
-            scheduleUsageHeartbeat();
         }
     );
 }
@@ -1866,7 +1805,6 @@ onAuthStateChanged(auth, async (user) => {
             activeHouseholdId = await resolveHousehold(user);
             await ensureDefaultGoal(activeHouseholdId);
             initCloudSync(activeHouseholdId);
-            scheduleUsageHeartbeat(true);
         } catch (error) {
             console.error(error);
             alert(`Ledger failed to load: ${error.message}`);
