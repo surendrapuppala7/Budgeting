@@ -118,6 +118,78 @@
 
         <section>
             <h2>Activity</h2>
+
+            <section class="activity-toolbar" aria-label="Activity filters">
+                <div class="activity-search-row">
+                    <input
+                        type="search"
+                        id="activitySearch"
+                        class="activity-search"
+                        placeholder="Search notes, categories, wallets, amounts..."
+                        autocomplete="off"
+                    >
+                </div>
+
+                <div class="activity-filter-grid">
+                    <select id="activityDatePreset" class="activity-control">
+                        <option value="month">This Month</option>
+                        <option value="lastMonth">Last Month</option>
+                        <option value="last3">Last 3 Months</option>
+                        <option value="year">This Year</option>
+                        <option value="all">All Time</option>
+                        <option value="custom">Custom Range</option>
+                    </select>
+
+                    <select id="activityTypeFilter" class="activity-control">
+                        <option value="all">All Types</option>
+                        <option value="income">Income</option>
+                        <option value="expense">Expense</option>
+                        <option value="savings">Savings</option>
+                    </select>
+
+                    <select id="activityCategoryFilter" class="activity-control">
+                        <option value="all">All Categories</option>
+                    </select>
+
+                    <select id="activityWalletFilter" class="activity-control">
+                        <option value="all">All Wallets</option>
+                    </select>
+
+                    <select id="activitySort" class="activity-control">
+                        <option value="newest">Newest First</option>
+                        <option value="oldest">Oldest First</option>
+                        <option value="highest">Highest Amount</option>
+                        <option value="lowest">Lowest Amount</option>
+                        <option value="az">A-Z Note</option>
+                    </select>
+                </div>
+
+                <div id="activityCustomDates" class="activity-custom-dates" hidden>
+                    <label>
+                        Start
+                        <input type="date" id="activityStartDate" class="activity-control">
+                    </label>
+
+                    <label>
+                        End
+                        <input type="date" id="activityEndDate" class="activity-control">
+                    </label>
+                </div>
+
+                <div class="activity-actions">
+                    <label class="activity-check">
+                        <input type="checkbox" id="activityGroupByMonth">
+                        Group by month
+                    </label>
+
+                    <button type="button" id="activityResetFilters" class="btn-outline">
+                        Reset Filters
+                    </button>
+                </div>
+
+                <div id="activityFilterSummary" class="activity-filter-summary"></div>
+            </section>
+
             <div id="txList" class="list-wrap activity-list"></div>
         </section>
     </main>
