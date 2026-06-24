@@ -310,7 +310,25 @@ function updateMetadata() {
 }
 
 async function login() {
-    await signInWithPopup(auth, provider);
+    const btn = $('loginBtn');
+
+    try {
+        btn.disabled = true;
+        btn.textContent = 'Opening Google...';
+
+        await signInWithRedirect(auth, provider);
+    } catch (error) {
+        console.error('Google redirect sign-in failed:', error);
+
+        alert(
+            `Google sign-in failed.\n\n` +
+            `Code: ${error.code || 'unknown'}\n\n` +
+            `${error.message || error}`
+        );
+
+        btn.disabled = false;
+        btn.textContent = 'Sign in with Google';
+    }
 }
 
 async function logout() {
@@ -1763,6 +1781,16 @@ function bindEvents() {
 }
 
 bindEvents();
+
+getRedirectResult(auth).catch((error) => {
+    console.error('Redirect result failed:', error);
+
+    alert(
+        `Google sign-in failed.\n\n` +
+        `Code: ${error.code || 'unknown'}\n\n` +
+        `${error.message || error}`
+    );
+});
 
 onAuthStateChanged(auth, async (user) => {
     clearSubscriptions();
