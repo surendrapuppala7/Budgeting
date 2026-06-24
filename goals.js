@@ -21,7 +21,7 @@ import {
 
 const firebaseConfig = {
     apiKey: "AIzaSyCyYAuJLi67EdCu4FvIEr4QsKCgvlKWXrw",
-    authDomain: "ledger-d3ec5.firebaseapp.com",
+    authDomain: "ledger.itcyber.cc",
     projectId: "ledger-d3ec5",
     storageBucket: "ledger-d3ec5.firebasestorage.app",
     messagingSenderId: "1024737940441",
