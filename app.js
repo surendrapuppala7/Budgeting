@@ -310,6 +310,62 @@ function updateMetadata() {
     };
 }
 
+let heartbeatTimer = null;
+let heartbeatLastWrite = 0;
+
+function safeCount(value, max) {
+    const num = Number(value || 0);
+
+    if (!Number.isFinite(num)) {
+        return 0;
+    }
+
+    return Math.max(0, Math.min(Math.trunc(num), max));
+}
+
+async function writeUsageHeartbeat(force = false) {
+    if (!currentUser) return;
+
+    const now = Date.now();
+
+    if (!force && now - heartbeatLastWrite < 60000) {
+        return;
+    }
+
+    heartbeatLastWrite = now;
+
+    const memberCount = Array.isArray(household?.allowedEmails)
+        ? household.allowedEmails.length
+        : 1;
+
+    const payload = {
+        lastActiveAt: now,
+        updatedAt: now,
+        appVersion: APP_VERSION,
+        transactionCount: safeCount(transactions.length, 50000),
+        goalCount: safeCount(goals.length, 1000),
+        categoryCount: safeCount(categories.length, 500),
+        isHouseholdOwner: Boolean(household && household.ownerUid === currentUser.uid),
+        householdMemberCount: safeCount(memberCount, 20)
+    };
+
+    try {
+        await setDoc(doc(db, `usageHeartbeats/${currentUser.uid}`), payload, { merge: true });
+    } catch (error) {
+        console.warn('Usage heartbeat failed:', error);
+    }
+}
+
+function scheduleUsageHeartbeat(force = false) {
+    if (heartbeatTimer) {
+        clearTimeout(heartbeatTimer);
+    }
+
+    heartbeatTimer = setTimeout(() => {
+        writeUsageHeartbeat(force);
+    }, force ? 100 : 1500);
+}
+
 async function login() {
     const btn = $('loginBtn');
 
