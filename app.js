@@ -44,6 +44,7 @@ initializeAppCheck(app, {
 const auth = getAuth(app);
 const db = getFirestore(app);
 const provider = new GoogleAuthProvider();
+
 const palette = ['#111111', '#A63D2F', '#D99A5A', '#C2847A', '#7A8B76', '#4A5D4E', '#2B4C3B', '#8E8E93'];
 const allowedTypes = new Set(['income', 'expense', 'savings']);
 
@@ -65,6 +66,7 @@ let goals = [];
 let type = 'expense';
 let modalTab = 'expense';
 let editingItemId = null;
+let activityFiltersBound = false;
 
 const $ = (id) => document.getElementById(id);
 
@@ -76,6 +78,7 @@ function createEl(tag, className, text) {
 }
 
 function setHidden(node, hidden) {
+    if (!node) return;
     node.classList.toggle('hidden', Boolean(hidden));
 }
 
@@ -1006,6 +1009,8 @@ function refreshDropdowns() {
 }
 
 function replaceOptions(select, items, labelKey) {
+    if (!select) return;
+
     select.replaceChildren();
 
     items.forEach(item => {
@@ -1132,6 +1137,401 @@ function rowWithActions(title, meta, actions = [], dotColor = '') {
     return row;
 }
 
+/* Activity search, filters, sorting */
+
+function activityEl(id) {
+    return document.getElementById(id);
+}
+
+function normalizeSearch(value) {
+    return String(value || '').toLowerCase().trim();
+}
+
+function txTime(tx) {
+    return Number(tx.timestamp || 0);
+}
+
+function txAmount(tx) {
+    return Number(tx.amt || 0);
+}
+
+function getTxCategoryName(tx) {
+    if (tx.type === 'savings') {
+        const goal = goals.find(g => g.id === tx.goalId);
+        return goal ? goal.name : (tx.goalId || 'Savings Goal');
+    }
+
+    const category = categories.find(c => c.id === tx.catId);
+    return category ? category.name : (tx.catId || 'Uncategorized');
+}
+
+function getTxWalletName(tx) {
+    if (tx.type === 'income') return 'Deposit';
+
+    const wallet = wallets.find(w => w.id === tx.walletId);
+    return wallet ? wallet.name : (tx.walletId || 'Wallet');
+}
+
+function monthKeyFromTimestamp(timestamp) {
+    const date = new Date(Number(timestamp || 0));
+    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+}
+
+function monthLabelFromTimestamp(timestamp) {
+    const date = new Date(Number(timestamp || 0));
+    return date.toLocaleDateString('en-US', {
+        month: 'long',
+        year: 'numeric'
+    });
+}
+
+function getActivityDateRange() {
+    const preset = activityEl('activityDatePreset')?.value || 'month';
+    const now = new Date();
+
+    let start = null;
+    let end = null;
+
+    if (preset === 'month') {
+        start = new Date(now.getFullYear(), now.getMonth(), 1).getTime();
+    }
+
+    if (preset === 'lastMonth') {
+        start = new Date(now.getFullYear(), now.getMonth() - 1, 1).getTime();
+        end = new Date(now.getFullYear(), now.getMonth(), 1).getTime() - 1;
+    }
+
+    if (preset === 'last3') {
+        start = new Date(now.getFullYear(), now.getMonth() - 2, 1).getTime();
+    }
+
+    if (preset === 'year') {
+        start = new Date(now.getFullYear(), 0, 1).getTime();
+    }
+
+    if (preset === 'custom') {
+        const startInput = activityEl('activityStartDate')?.value;
+        const endInput = activityEl('activityEndDate')?.value;
+
+        if (startInput) {
+            start = new Date(`${startInput}T00:00:00`).getTime();
+        }
+
+        if (endInput) {
+            end = new Date(`${endInput}T23:59:59`).getTime();
+        }
+    }
+
+    return { start, end };
+}
+
+function populateActivityFilterOptions() {
+    const categorySelect = activityEl('activityCategoryFilter');
+    const walletSelect = activityEl('activityWalletFilter');
+
+    if (!categorySelect || !walletSelect) return;
+
+    const selectedCategory = categorySelect.value || 'all';
+    const selectedWallet = walletSelect.value || 'all';
+
+    const categoryOptions = new Map();
+
+    categories.forEach(cat => {
+        if (cat && cat.id) {
+            categoryOptions.set(cat.id, cat.name || cat.id);
+        }
+    });
+
+    transactions.forEach(tx => {
+        if (tx.type === 'savings') return;
+
+        if (tx.catId && !categoryOptions.has(tx.catId)) {
+            categoryOptions.set(tx.catId, tx.catId);
+        }
+    });
+
+    const walletOptions = new Map();
+
+    if (transactions.some(tx => tx.walletId === 'Deposit' || tx.type === 'income')) {
+        walletOptions.set('Deposit', 'Deposit');
+    }
+
+    wallets.forEach(wallet => {
+        if (wallet && wallet.id) {
+            walletOptions.set(wallet.id, wallet.name || wallet.id);
+        }
+    });
+
+    transactions.forEach(tx => {
+        if (tx.walletId && !walletOptions.has(tx.walletId)) {
+            walletOptions.set(tx.walletId, tx.walletId);
+        }
+    });
+
+    categorySelect.replaceChildren();
+    walletSelect.replaceChildren();
+
+    const allCat = document.createElement('option');
+    allCat.value = 'all';
+    allCat.textContent = 'All Categories';
+    categorySelect.appendChild(allCat);
+
+    [...categoryOptions.entries()]
+        .sort((a, b) => a[1].localeCompare(b[1]))
+        .forEach(([id, name]) => {
+            const option = document.createElement('option');
+            option.value = id;
+            option.textContent = safeText(name, 80);
+            categorySelect.appendChild(option);
+        });
+
+    const savingsOption = document.createElement('option');
+    savingsOption.value = '__savings__';
+    savingsOption.textContent = 'Savings Goals';
+    categorySelect.appendChild(savingsOption);
+
+    const allWallet = document.createElement('option');
+    allWallet.value = 'all';
+    allWallet.textContent = 'All Wallets';
+    walletSelect.appendChild(allWallet);
+
+    [...walletOptions.entries()]
+        .sort((a, b) => a[1].localeCompare(b[1]))
+        .forEach(([id, name]) => {
+            const option = document.createElement('option');
+            option.value = id;
+            option.textContent = safeText(name, 80);
+            walletSelect.appendChild(option);
+        });
+
+    if ([...categorySelect.options].some(option => option.value === selectedCategory)) {
+        categorySelect.value = selectedCategory;
+    }
+
+    if ([...walletSelect.options].some(option => option.value === selectedWallet)) {
+        walletSelect.value = selectedWallet;
+    }
+}
+
+function getFilteredActivityTransactions() {
+    const search = normalizeSearch(activityEl('activitySearch')?.value);
+    const typeFilter = activityEl('activityTypeFilter')?.value || 'all';
+    const categoryFilter = activityEl('activityCategoryFilter')?.value || 'all';
+    const walletFilter = activityEl('activityWalletFilter')?.value || 'all';
+    const sort = activityEl('activitySort')?.value || 'newest';
+    const { start, end } = getActivityDateRange();
+
+    let filtered = [...transactions];
+
+    filtered = filtered.filter(tx => {
+        const time = txTime(tx);
+
+        if (start !== null && time < start) return false;
+        if (end !== null && time > end) return false;
+
+        if (typeFilter !== 'all' && tx.type !== typeFilter) return false;
+
+        if (categoryFilter !== 'all') {
+            if (categoryFilter === '__savings__') {
+                if (tx.type !== 'savings') return false;
+            } else if (tx.catId !== categoryFilter) {
+                return false;
+            }
+        }
+
+        if (walletFilter !== 'all' && tx.walletId !== walletFilter) return false;
+
+        if (search) {
+            const searchable = [
+                tx.note,
+                tx.type,
+                tx.amt,
+                tx.date,
+                getTxCategoryName(tx),
+                getTxWalletName(tx),
+                tx.catId,
+                tx.walletId,
+                tx.goalId
+            ].map(normalizeSearch).join(' ');
+
+            if (!searchable.includes(search)) return false;
+        }
+
+        return true;
+    });
+
+    filtered.sort((a, b) => {
+        if (sort === 'oldest') return txTime(a) - txTime(b);
+        if (sort === 'highest') return txAmount(b) - txAmount(a);
+        if (sort === 'lowest') return txAmount(a) - txAmount(b);
+
+        if (sort === 'az') {
+            const aText = `${a.note || ''} ${getTxCategoryName(a)}`;
+            const bText = `${b.note || ''} ${getTxCategoryName(b)}`;
+            return aText.localeCompare(bText);
+        }
+
+        return txTime(b) - txTime(a);
+    });
+
+    return filtered;
+}
+
+function createActivityStat(label, value) {
+    const box = createEl('div', 'activity-stat');
+
+    const labelEl = createEl('span', '', label);
+    const valueEl = createEl('strong', '', value);
+
+    box.append(labelEl, valueEl);
+    return box;
+}
+
+function renderActivityFilterSummary(filteredTxs) {
+    const summary = activityEl('activityFilterSummary');
+    if (!summary) return;
+
+    const income = filteredTxs
+        .filter(tx => tx.type === 'income')
+        .reduce((sum, tx) => sum + txAmount(tx), 0);
+
+    const expenses = filteredTxs
+        .filter(tx => tx.type === 'expense')
+        .reduce((sum, tx) => sum + txAmount(tx), 0);
+
+    const savings = filteredTxs
+        .filter(tx => tx.type === 'savings')
+        .reduce((sum, tx) => sum + txAmount(tx), 0);
+
+    const net = income - expenses - savings;
+
+    summary.replaceChildren(
+        createActivityStat('Showing', `${filteredTxs.length} transaction${filteredTxs.length === 1 ? '' : 's'}`),
+        createActivityStat('Income', money2(income)),
+        createActivityStat('Expenses', money2(expenses)),
+        createActivityStat('Savings', money2(savings)),
+        createActivityStat('Net', money2(net))
+    );
+}
+
+function createActivityTransactionRow(t) {
+    const cat = categories.find(c => c.id === t.catId);
+    const wallet = wallets.find(w => w.id === t.walletId);
+    const goal = goals.find(g => g.id === t.goalId);
+
+    const isIncome = t.type === 'income';
+    const isSavings = t.type === 'savings';
+
+    const label = isSavings
+        ? goal ? goal.name : 'Savings'
+        : cat ? cat.name : 'Uncategorized';
+
+    const amountLabel = isIncome
+        ? `+${money2(t.amt)}`
+        : isSavings
+            ? `→ ${money2(t.amt)}`
+            : `-${money2(t.amt)}`;
+
+    const amountClass = isIncome
+        ? 'tx-amt income'
+        : isSavings
+            ? 'tx-amt savings'
+            : 'tx-amt expense';
+
+    const row = createEl('div', 'list-row activity-row');
+
+    const main = createEl('div', 'list-main');
+    main.appendChild(createEl('div', 'tx-desc', filterPlainTextForDisplay(t.note || 'Untitled transaction', 120)));
+
+    const meta = createEl('div', 'tx-meta');
+    meta.textContent = `${safeText(t.date || '', 32)} • ${safeText(label, 80)}`;
+
+    if (!isIncome && wallet && wallet.name !== 'Deposit') {
+        const pill = createEl('span', 'pill', wallet.name);
+        meta.appendChild(pill);
+    }
+
+    main.appendChild(meta);
+
+    const actionWrap = createEl('div', 'action-btns');
+    const amount = createEl('div', amountClass, amountLabel);
+    const del = createEl('button', 'del-btn', '×');
+    del.type = 'button';
+    del.setAttribute('aria-label', 'Delete transaction');
+    del.addEventListener('click', () => delTx(t.id));
+
+    actionWrap.appendChild(amount);
+    actionWrap.appendChild(del);
+
+    row.appendChild(main);
+    row.appendChild(actionWrap);
+
+    return row;
+}
+
+function resetActivityFilters() {
+    if (activityEl('activitySearch')) activityEl('activitySearch').value = '';
+    if (activityEl('activityDatePreset')) activityEl('activityDatePreset').value = 'month';
+    if (activityEl('activityTypeFilter')) activityEl('activityTypeFilter').value = 'all';
+    if (activityEl('activityCategoryFilter')) activityEl('activityCategoryFilter').value = 'all';
+    if (activityEl('activityWalletFilter')) activityEl('activityWalletFilter').value = 'all';
+    if (activityEl('activitySort')) activityEl('activitySort').value = 'newest';
+    if (activityEl('activityStartDate')) activityEl('activityStartDate').value = '';
+    if (activityEl('activityEndDate')) activityEl('activityEndDate').value = '';
+    if (activityEl('activityGroupByMonth')) activityEl('activityGroupByMonth').checked = false;
+
+    toggleActivityCustomDates();
+    renderTransactions();
+}
+
+function toggleActivityCustomDates() {
+    const customDates = activityEl('activityCustomDates');
+    const preset = activityEl('activityDatePreset')?.value;
+
+    if (customDates) {
+        customDates.hidden = preset !== 'custom';
+    }
+}
+
+function bindActivityFilters() {
+    if (activityFiltersBound) return;
+    activityFiltersBound = true;
+
+    [
+        'activitySearch',
+        'activityDatePreset',
+        'activityTypeFilter',
+        'activityCategoryFilter',
+        'activityWalletFilter',
+        'activitySort',
+        'activityStartDate',
+        'activityEndDate',
+        'activityGroupByMonth'
+    ].forEach(id => {
+        const element = activityEl(id);
+        if (!element) return;
+
+        const eventName = element.type === 'search' || element.type === 'text'
+            ? 'input'
+            : 'change';
+
+        element.addEventListener(eventName, () => {
+            if (id === 'activityDatePreset') {
+                toggleActivityCustomDates();
+            }
+
+            renderTransactions();
+        });
+    });
+
+    const resetBtn = activityEl('activityResetFilters');
+    if (resetBtn) {
+        resetBtn.addEventListener('click', resetActivityFilters);
+    }
+
+    toggleActivityCustomDates();
+}
+
 function renderUI() {
     const timeFilter = $('timeFilter').value;
     let activeTxs = transactions;
@@ -1160,7 +1560,7 @@ function renderUI() {
     renderQuickTags();
     renderExpenseBreakdown(activeTxs);
     renderSavingsList();
-    renderTransactions(activeTxs);
+    renderTransactions();
 }
 
 function renderPie(activeTxs, totalExp) {
@@ -1265,60 +1665,45 @@ function progressRow(name, stat, pct, color) {
     return row;
 }
 
-function renderTransactions(activeTxs) {
+function renderTransactions() {
     const list = $('txList');
+    if (!list) return;
+
+    populateActivityFilterOptions();
+
+    const filteredTxs = getFilteredActivityTransactions();
+    renderActivityFilterSummary(filteredTxs);
+
     list.replaceChildren();
 
-    activeTxs.forEach(t => {
-        const cat = categories.find(c => c.id === t.catId);
-        const wallet = wallets.find(w => w.id === t.walletId);
-        const goal = goals.find(g => g.id === t.goalId);
+    if (!filteredTxs.length) {
+        list.appendChild(emptyRow('No transactions match these filters.'));
+        return;
+    }
 
-        const isIncome = t.type === 'income';
-        const isSavings = t.type === 'savings';
+    const groupByMonth = activityEl('activityGroupByMonth')?.checked;
 
-        const label = isSavings
-            ? goal ? goal.name : 'Savings'
-            : cat ? cat.name : 'Uncategorized';
+    if (!groupByMonth) {
+        filteredTxs.forEach(t => {
+            list.appendChild(createActivityTransactionRow(t));
+        });
+        return;
+    }
 
-        const amountLabel = isIncome
-            ? `+${money2(t.amt)}`
-            : isSavings
-                ? `→ ${money2(t.amt)}`
-                : `-${money2(t.amt)}`;
+    let currentMonth = '';
 
-        const row = createEl('div', 'list-row');
+    filteredTxs.forEach(t => {
+        const monthKey = monthKeyFromTimestamp(txTime(t));
 
-        const main = createEl('div', 'list-main');
-        main.appendChild(createEl('div', 'tx-desc', t.note));
+        if (monthKey !== currentMonth) {
+            currentMonth = monthKey;
 
-        const meta = createEl('div', 'tx-meta');
-        meta.textContent = `${safeText(t.date || '', 32)} • ${safeText(label, 80)}`;
-
-        if (!isIncome && wallet && wallet.name !== 'Deposit') {
-            const pill = createEl('span', 'pill', wallet.name);
-            meta.appendChild(pill);
+            const heading = createEl('div', 'activity-month-heading', monthLabelFromTimestamp(txTime(t)));
+            list.appendChild(heading);
         }
 
-        main.appendChild(meta);
-
-        const actionWrap = createEl('div', 'action-btns');
-        const amount = createEl('div', `tx-amt${isIncome ? ' income' : ''}${isSavings ? ' savings' : ''}`, amountLabel);
-        const del = createEl('button', 'del-btn', '×');
-        del.type = 'button';
-        del.addEventListener('click', () => delTx(t.id));
-
-        actionWrap.appendChild(amount);
-        actionWrap.appendChild(del);
-
-        row.appendChild(main);
-        row.appendChild(actionWrap);
-        list.appendChild(row);
+        list.appendChild(createActivityTransactionRow(t));
     });
-
-    if (!list.childNodes.length) {
-        list.appendChild(emptyRow('No activity.'));
-    }
 }
 
 function emptyRow(message) {
@@ -1373,6 +1758,7 @@ function bindEvents() {
     });
 
     applyInputFilters();
+    bindActivityFilters();
 }
 
 bindEvents();
