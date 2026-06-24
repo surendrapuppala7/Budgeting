@@ -45,6 +45,7 @@ initializeAppCheck(app, {
 const auth = getAuth(app);
 const db = getFirestore(app);
 const provider = new GoogleAuthProvider();
+const APP_VERSION = 'redirect-login-2';
 
 const palette = ['#111111', '#A63D2F', '#D99A5A', '#C2847A', '#7A8B76', '#4A5D4E', '#2B4C3B', '#8E8E93'];
 const allowedTypes = new Set(['income', 'expense', 'savings']);
