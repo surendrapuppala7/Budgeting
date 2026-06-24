@@ -1,4 +1,5 @@
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+fimport goals
+{ initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
 import {
     initializeAppCheck,
     ReCaptchaV3Provider
@@ -597,6 +598,7 @@ function initCloudSync(householdId) {
         refreshDropdowns();
         renderUI();
         renderModalList();
+        scheduleUsageHeartbeat();
     });
 
     unsubscribeGoals = onSnapshot(
@@ -613,6 +615,7 @@ function initCloudSync(householdId) {
             });
             refreshDropdowns();
             renderUI();
+            scheduleUsageHeartbeat();
         }
     );
 
@@ -622,10 +625,10 @@ function initCloudSync(householdId) {
             transactions = [];
             snapshot.forEach((d) => transactions.push({ id: d.id, ...d.data() }));
             renderUI();
+            scheduleUsageHeartbeat();
         }
     );
 }
-
 async function processRecurringCloudItems(householdId, rules) {
     if (!Array.isArray(rules) || rules.length === 0) return;
 
