@@ -931,3 +931,46 @@ input[type=range]::-webkit-slider-runnable-track {
         font-size: 38px;
     }
 }
+
+/* Fix custom date range layout in Activity filters */
+
+.activity-custom-dates {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 10px;
+    margin-top: 10px;
+    width: 100%;
+}
+
+.activity-custom-dates[hidden] {
+    display: none !important;
+}
+
+.activity-custom-dates label {
+    display: block;
+    min-width: 0;
+    width: 100%;
+    font-size: 12px;
+    color: var(--ink-light);
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+}
+
+.activity-custom-dates input[type="date"] {
+    display: block;
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+    margin-top: 6px;
+    box-sizing: border-box;
+    text-align: center;
+    -webkit-appearance: none;
+    appearance: none;
+}
+
+@media (max-width: 430px) {
+    .activity-custom-dates {
+        grid-template-columns: 1fr;
+    }
+}
